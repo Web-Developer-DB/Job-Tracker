@@ -22,7 +22,7 @@ export const ApplicationList = ({
   if (applications.length === 0) {
     return (
       <div className="card p-8 text-center text-muted">
-        Noch keine Bewerbungen. Lege deine erste Bewerbung an.
+        Noch keine Bewerbungen – lege deine erste Bewerbung an.
       </div>
     );
   }

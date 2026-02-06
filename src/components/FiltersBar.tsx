@@ -29,9 +29,9 @@ const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
 
 // Optionen für Sortierung.
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'createdAt', label: 'Datum' },
+  { value: 'createdAt', label: 'Erstellt am' },
   { value: 'status', label: 'Status' },
-  { value: 'followUp', label: 'Follow-up' }
+  { value: 'followUp', label: 'Follow-up-Datum' }
 ];
 
 // Filter- und Sortierleiste.

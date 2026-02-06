@@ -23,7 +23,7 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
   // Aus Bewerbungen eine flache Tabelle bauen.
   const rows = buildExportRows(applications);
   const date = new Date().toLocaleDateString('de-DE');
-  const period = `${rangeLabels[filters.range]} · Status: ${filters.status}`;
+  const period = `Zeitraum: ${rangeLabels[filters.range]} · Status: ${filters.status}`;
   // Farben für Status in der Drucktabelle.
   const statusColors: Record<ApplicationStatus, string> = {
     Entwurf: '#6272a4',
@@ -39,7 +39,7 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
       <header className="mb-6">
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="text-sm">{period}</p>
-        <p className="text-xs text-gray-600">Erstellt am {date}</p>
+        <p className="text-xs text-gray-600">Erstellt am: {date}</p>
       </header>
 
       <table className="w-full text-sm">
@@ -52,7 +52,7 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
         </colgroup>
         <thead>
           <tr className="text-left border-b border-gray-300">
-            <th className="py-2">Bewerbungsdatum</th>
+            <th className="py-2">Erstellt am</th>
             <th className="py-2">Unternehmen</th>
             <th className="py-2">Position</th>
             <th className="py-2">Status</th>

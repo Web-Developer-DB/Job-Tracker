@@ -88,7 +88,7 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-xl">Planer</h2>
-          <p className="text-sm text-muted">Aufgaben & Termine pro Bewerbung.</p>
+          <p className="text-sm text-muted">Aufgaben und Termine pro Bewerbung.</p>
         </div>
         <div className="flex gap-2">
           {(Object.keys(viewLabels) as ViewMode[]).map((mode) => (
@@ -111,7 +111,7 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
           className="rounded-lg border border-border bg-surface-2 px-3 py-2"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="Neue Aufgabe"
+          placeholder="Neue Aufgabe …"
         />
         <select
           className="rounded-lg border border-border bg-surface-2 px-3 py-2"
@@ -150,7 +150,7 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <p className="text-sm text-muted">Keine Aufgaben im Filter.</p>
+          <p className="text-sm text-muted">Keine Aufgaben in dieser Ansicht.</p>
         ) : (
           filtered.map((task) => (
             <div key={task.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">

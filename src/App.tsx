@@ -133,7 +133,9 @@ const App = () => {
       }
       return;
     }
-    alert('Installation: Im Browser-Menü „App installieren“ wählen (oder auf iOS: Teilen → „Zum Home-Bildschirm“).');
+    alert(
+      'Installation: Im Browsermenü „App installieren“ auswählen (oder auf iOS: Teilen → „Zum Home-Bildschirm“).'
+    );
   };
 
   // Formular speichern: entweder aktualisieren oder neu anlegen.
@@ -188,17 +190,17 @@ const App = () => {
   // Alle lokalen Daten löschen (mit mehrstufiger Bestätigung).
   const handleReset = async () => {
     const first = window.confirm(
-      'Daten wirklich löschen?\n\nAlle Bewerbungen, Aufgaben, Status-Verläufe und Einstellungen werden unwiderruflich entfernt.'
+      'Daten wirklich löschen?\n\nAlle Bewerbungen, Aufgaben, Statusverläufe und Einstellungen werden unwiderruflich gelöscht.'
     );
     if (!first) return;
 
     const second = window.confirm(
-      'Bist du sicher?\n\nAlle Verläufe sind danach komplett gelöscht. Falls du die Daten noch nicht gesichert hast, gehe bitte zuerst auf „Datensichern“ oben im Menü.'
+      'Bist du sicher?\n\nAlle Verläufe sind danach vollständig gelöscht. Wenn du deine Daten noch nicht gesichert hast, klicke zuerst oben auf „Sichern“.'
     );
     if (!second) return;
 
     const third = window.confirm(
-      'Letzte Bestätigung:\n\nJetzt werden alle lokalen Daten endgültig gelöscht. Fortfahren?'
+      'Letzte Bestätigung:\n\nAlle lokalen Daten werden jetzt endgültig gelöscht. Fortfahren?'
     );
     if (!third) return;
 
@@ -215,7 +217,7 @@ const App = () => {
       <div className="mx-auto max-w-6xl space-y-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl">Job-Tracker & Planer</h1>
+            <h1 className="font-display text-3xl">Job-Tracker und Planer</h1>
             <p className="text-sm text-muted">Offline-fähig, lokal gespeichert, bereit für deinen Alltag.</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -233,7 +235,7 @@ const App = () => {
               onClick={() => setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
               className="rounded-full border border-border px-4 py-2 text-sm"
             >
-              {settings.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              {settings.theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'}
             </button>
             <button
               type="button"
@@ -261,7 +263,7 @@ const App = () => {
               onClick={handleReset}
               className="rounded-full border border-danger px-4 py-2 text-sm text-danger"
             >
-              Reset
+              Alles löschen
             </button>
             <input
               ref={fileInputRef}
@@ -305,14 +307,14 @@ const App = () => {
       <footer className="mx-auto mt-12 max-w-6xl border-t border-border pt-6 text-sm text-muted">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span>Lizenz: MIT</span>
-          <span>Projekt von Dimitri B · Erstellt mit Unterstützung von Codex Agenten</span>
+          <span>Projekt von Dimitri B · Erstellt mit Unterstützung von Codex-Agenten</span>
           <a
             href="https://github.com/Web-Developer-DB/Job-Tracker"
             className="text-primary underline"
             target="_blank"
             rel="noreferrer"
           >
-            GitHub Repository
+            GitHub-Repository
           </a>
         </div>
       </footer>

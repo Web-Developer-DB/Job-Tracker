@@ -21,15 +21,16 @@ export const ApplicationCard = ({
   onDelete,
   onStatusChange
 }: ApplicationCardProps) => {
+  const tasksLabel = taskCount === 1 ? '1 Aufgabe' : `${taskCount} Aufgaben`;
   return (
     <div className="card p-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-display text-lg">
-            {application.company || 'Unbenanntes Unternehmen'}
+            {application.company || 'Unbenannt'}
           </h3>
           <p className="text-sm text-muted">
-            {application.position || 'Position offen'}
+            {application.position || 'Position nicht angegeben'}
             {application.location ? ` · ${application.location}` : ''}
           </p>
         </div>
@@ -38,8 +39,8 @@ export const ApplicationCard = ({
 
       <div className="grid gap-2 text-sm text-muted">
         <div className="flex flex-wrap gap-3">
-          <span>Erstellt: {formatDateDE(application.createdAt)}</span>
-          {application.followUpDate && <span>Follow-up: {formatDateDE(application.followUpDate)}</span>}
+          <span>Erstellt am: {formatDateDE(application.createdAt)}</span>
+          {application.followUpDate && <span>Follow-up am: {formatDateDE(application.followUpDate)}</span>}
         </div>
         {application.link && (
           <a className="text-primary underline" href={application.link} target="_blank" rel="noreferrer">
@@ -48,7 +49,7 @@ export const ApplicationCard = ({
         )}
         {application.source && <span>Quelle: {application.source}</span>}
         {application.contact && <span>Kontakt: {application.contact}</span>}
-        {taskCount > 0 && <span>Planer: {taskCount} Aufgabe(n)</span>}
+        {taskCount > 0 && <span>Planer: {tasksLabel}</span>}
       </div>
 
       {application.notes && (

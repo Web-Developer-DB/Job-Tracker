@@ -75,7 +75,7 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-xl">{initial ? 'Bewerbung bearbeiten' : 'Neue Bewerbung'}</h2>
-          <p className="text-sm text-muted">Empfohlene Felder sind optional.</p>
+          <p className="text-sm text-muted">Empfohlene Felder helfen dir später beim Überblick.</p>
         </div>
         {onCancel && (
           <button
@@ -95,7 +95,7 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
             className="rounded-lg border border-border bg-surface-2 px-3 py-2"
             value={company}
             onChange={(event) => setCompany(event.target.value)}
-            placeholder="z.B. Nordlicht GmbH"
+            placeholder="z. B. Nordlicht GmbH"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -104,16 +104,16 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
             className="rounded-lg border border-border bg-surface-2 px-3 py-2"
             value={position}
             onChange={(event) => setPosition(event.target.value)}
-            placeholder="z.B. Frontend Engineer"
+            placeholder="z. B. Frontend Engineer"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Ort / Remote
+          Ort / remote
           <input
             className="rounded-lg border border-border bg-surface-2 px-3 py-2"
             value={location}
             onChange={(event) => setLocation(event.target.value)}
-            placeholder="Berlin oder Remote"
+            placeholder="Berlin oder remote"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -131,7 +131,7 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
             className="rounded-lg border border-border bg-surface-2 px-3 py-2"
             value={source}
             onChange={(event) => setSource(event.target.value)}
-            placeholder="LinkedIn, Empfehlung, ..."
+            placeholder="LinkedIn, Empfehlung …"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
@@ -149,7 +149,7 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Follow-up Datum
+          Follow-up-Datum
           <input
             type="date"
             className="rounded-lg border border-border bg-surface-2 px-3 py-2"
@@ -174,7 +174,7 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
           className="min-h-[100px] rounded-lg border border-border bg-surface-2 px-3 py-2"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
-          placeholder="Wichtige Infos, nächste Schritte, ..."
+          placeholder="Wichtige Infos, nächste Schritte …"
         />
       </label>
 

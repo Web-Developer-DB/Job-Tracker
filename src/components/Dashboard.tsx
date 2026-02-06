@@ -28,7 +28,7 @@ export const Dashboard = ({ stats }: DashboardProps) => {
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="card p-4">
-          <h3 className="font-display text-lg mb-4">Verlauf letzte 6 Monate</h3>
+          <h3 className="font-display text-lg mb-4">Verlauf der letzten 6 Monate</h3>
           <div className="flex items-end gap-3">
             {stats.lastSixMonths.map((item) => (
               <div key={item.label} className="flex flex-col items-center gap-2">
@@ -42,15 +42,15 @@ export const Dashboard = ({ stats }: DashboardProps) => {
           </div>
         </div>
         <div className="card p-4">
-          <h3 className="font-display text-lg mb-3">Follow-ups fällig</h3>
+          <h3 className="font-display text-lg mb-3">Fällige Follow-ups</h3>
           {stats.followUpsDue.length === 0 ? (
-            <p className="text-sm text-muted">Keine Follow-ups heute.</p>
+            <p className="text-sm text-muted">Aktuell sind keine Follow-ups fällig.</p>
           ) : (
             <ul className="space-y-2">
               {stats.followUpsDue.slice(0, 5).map((application) => (
                 <li key={application.id} className="text-sm">
                   <span className="font-semibold">{application.company || 'Unbenannt'}</span>
-                  <span className="text-muted"> · {application.position || 'Position offen'}</span>
+                  <span className="text-muted"> · {application.position || 'Position nicht angegeben'}</span>
                 </li>
               ))}
             </ul>
@@ -59,7 +59,7 @@ export const Dashboard = ({ stats }: DashboardProps) => {
       </div>
 
       <div className="card p-4">
-        <h3 className="font-display text-lg mb-3">Status Übersicht</h3>
+        <h3 className="font-display text-lg mb-3">Statusübersicht</h3>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Object.entries(stats.byStatus).map(([status, count]) => (
             <div key={status} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
