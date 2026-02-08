@@ -349,9 +349,9 @@ const App = () => {
           onWeeklyGoalChange={setWeeklyGoal}
         />
 
-        <FiltersBar value={filters} onChange={setFilters} />
-
         <ApplicationForm onSubmit={handleCreate} resetAfterSubmit />
+
+        <FiltersBar value={filters} onChange={setFilters} />
 
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
