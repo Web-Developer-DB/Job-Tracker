@@ -88,17 +88,19 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
 
   return (
     <section className="card space-y-4 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-display text-xl">Planer</h2>
           <p className="text-sm text-muted">Halte Follow-ups, To-dos und Interviewtermine im Flow.</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 rounded-full border border-border bg-surface-2 p-1">
+        <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-surface-2 p-1 sm:w-auto sm:auto-cols-max sm:grid-flow-col sm:gap-2 sm:rounded-full">
           {(Object.keys(viewLabels) as ViewMode[]).map((mode) => (
             <button
               key={mode}
-              className={`btn px-3 py-1 text-xs ${view === mode ? 'btn-primary' : 'btn-ghost'}`}
+              className={`btn !min-h-9 w-full !px-2.5 !py-2 !text-[0.78rem] sm:w-auto sm:!px-3 sm:!py-1 ${
+                view === mode ? 'btn-primary' : 'btn-ghost'
+              }`}
               type="button"
               onClick={() => setView(mode)}
             >
