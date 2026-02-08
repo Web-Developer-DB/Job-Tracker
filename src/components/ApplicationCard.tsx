@@ -1,11 +1,14 @@
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { ApplicationStatus, JobApplication } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { formatDateDE } from '../services/export';
+import { ApplicationForm, type ApplicationFormValues } from './ApplicationForm';
 
 interface ApplicationCardProps {
   application: JobApplication;
   taskCount?: number;
-  onEdit: () => void;
+  onUpdate: (values: ApplicationFormValues) => void;
   onDelete: () => void;
   onStatusChange: (status: ApplicationStatus) => void;
 }
@@ -17,11 +20,13 @@ const STATUSES: ApplicationStatus[] = ['Entwurf', 'Beworben', 'Interview', 'Ange
 export const ApplicationCard = ({
   application,
   taskCount = 0,
-  onEdit,
+  onUpdate,
   onDelete,
   onStatusChange
 }: ApplicationCardProps) => {
+  const [isEditing, setIsEditing] = useState(false);
   const tasksLabel = taskCount === 1 ? '1 Aufgabe' : `${taskCount} Aufgaben`;
+
   return (
     <div className="card p-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -75,9 +80,9 @@ export const ApplicationCard = ({
           <button
             className="rounded-full border border-border px-4 py-2 text-xs text-muted hover:text-text"
             type="button"
-            onClick={onEdit}
+            onClick={() => setIsEditing((value) => !value)}
           >
-            Bearbeiten
+            {isEditing ? 'Schließen' : 'Bearbeiten'}
           </button>
           <button
             className="rounded-full border border-danger px-4 py-2 text-xs text-danger"
@@ -88,6 +93,32 @@ export const ApplicationCard = ({
           </button>
         </div>
       </div>
+
+      <AnimatePresence initial={false}>
+        {isEditing && (
+          <motion.div
+            key="edit-panel"
+            className="overflow-hidden"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="border-t border-border pt-4">
+              <ApplicationForm
+                initial={application}
+                embedded
+                submitLabel="Änderungen speichern"
+                onSubmit={(values) => {
+                  onUpdate(values);
+                  setIsEditing(false);
+                }}
+                onCancel={() => setIsEditing(false)}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

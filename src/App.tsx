@@ -44,8 +44,6 @@ const App = () => {
     resetAll
   } = useAppStore();
 
-  // ID der Bewerbung, die gerade bearbeitet wird.
-  const [editingId, setEditingId] = useState<string | null>(null);
   // Installationsstatus der PWA.
   const [isInstalled, setIsInstalled] = useState(false);
   // Speichert das Installations-Event, damit wir es auf Button-Klick auslösen können.
@@ -146,14 +144,14 @@ const App = () => {
     );
   };
 
-  // Formular speichern: entweder aktualisieren oder neu anlegen.
-  const handleSubmit = (values: ApplicationFormValues) => {
-    if (editingId) {
-      updateApplication(editingId, values);
-    } else {
-      addApplication(values);
-    }
-    setEditingId(null);
+  // Neues Formular oben: erstellt immer einen neuen Datensatz.
+  const handleCreate = (values: ApplicationFormValues) => {
+    addApplication(values);
+  };
+
+  // Bearbeiten in der Karte: aktualisiert den gewählten Datensatz.
+  const handleUpdate = (id: string, values: ApplicationFormValues) => {
+    updateApplication(id, values);
   };
 
   // Löschen mit Sicherheitsabfrage.
@@ -288,17 +286,14 @@ const App = () => {
         <FiltersBar value={filters} onChange={setFilters} />
 
         <ApplicationForm
-          // Key sorgt dafür, dass das Formular sauber neu initialisiert wird.
-          key={editingId ?? 'new'}
-          initial={applications.find((application) => application.id === editingId)}
-          onSubmit={handleSubmit}
-          onCancel={editingId ? () => setEditingId(null) : undefined}
+          onSubmit={handleCreate}
+          resetAfterSubmit
         />
 
         <ApplicationList
           applications={filteredApplications}
           taskCounts={taskCounts}
-          onEdit={(id) => setEditingId(id)}
+          onUpdate={handleUpdate}
           onDelete={handleDelete}
           onStatusChange={changeStatus}
           totalCount={applications.length}

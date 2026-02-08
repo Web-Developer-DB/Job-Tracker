@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ApplicationStatus, JobApplication } from '../types';
 import { ApplicationCard } from './ApplicationCard';
+import type { ApplicationFormValues } from './ApplicationForm';
 
 interface ApplicationListProps {
   applications: JobApplication[];
   taskCounts: Record<string, number>;
-  onEdit: (id: string) => void;
+  onUpdate: (id: string, values: ApplicationFormValues) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: ApplicationStatus) => void;
   totalCount?: number;
@@ -17,7 +18,7 @@ interface ApplicationListProps {
 export const ApplicationList = ({
   applications,
   taskCounts,
-  onEdit,
+  onUpdate,
   onDelete,
   onStatusChange,
   totalCount = 0,
@@ -69,7 +70,7 @@ export const ApplicationList = ({
             <ApplicationCard
               application={application}
               taskCount={taskCounts[application.id] ?? 0}
-              onEdit={() => onEdit(application.id)}
+              onUpdate={(values) => onUpdate(application.id, values)}
               onDelete={() => onDelete(application.id)}
               onStatusChange={(status) => onStatusChange(application.id, status)}
             />

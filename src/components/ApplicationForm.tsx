@@ -21,6 +21,9 @@ interface ApplicationFormProps {
   initial?: Partial<JobApplication>;
   onSubmit: (values: ApplicationFormValues) => void;
   onCancel?: () => void;
+  embedded?: boolean;
+  submitLabel?: string;
+  resetAfterSubmit?: boolean;
 }
 
 // Leerzeichen entfernen. Leere Strings werden zu `undefined`,
@@ -28,7 +31,14 @@ interface ApplicationFormProps {
 const normalize = (value: string): string | undefined => (value.trim() ? value.trim() : undefined);
 
 // Formular für neue Bewerbungen und zum Bearbeiten bestehender Bewerbungen.
-export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationFormProps) => {
+export const ApplicationForm = ({
+  initial,
+  onSubmit,
+  onCancel,
+  embedded = false,
+  submitLabel = 'Speichern',
+  resetAfterSubmit = false
+}: ApplicationFormProps) => {
   // Alle Felder sind Controlled Inputs: der State ist die einzige Quelle der Wahrheit.
   const [company, setCompany] = useState(initial?.company ?? '');
   const [position, setPosition] = useState(initial?.position ?? '');
@@ -40,9 +50,24 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
   const [contact, setContact] = useState(initial?.contact ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
 
+  const resetForm = () => {
+    setCompany('');
+    setPosition('');
+    setLocation('');
+    setLink('');
+    setSource('');
+    setStatus('Entwurf');
+    setFollowUpDate('');
+    setContact('');
+    setNotes('');
+  };
+
   // Wenn ein Datensatz zum Bearbeiten übergeben wird, füllen wir das Formular damit.
   useEffect(() => {
-    if (!initial) return;
+    if (!initial) {
+      resetForm();
+      return;
+    }
     setCompany(initial.company ?? '');
     setPosition(initial.position ?? '');
     setLocation(initial.location ?? '');
@@ -68,14 +93,21 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
       contact: normalize(contact),
       notes: normalize(notes)
     });
+    if (resetAfterSubmit && !initial) {
+      resetForm();
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card p-6 space-y-4">
+    <form onSubmit={handleSubmit} className={embedded ? 'space-y-4' : 'card p-6 space-y-4'}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-xl">{initial ? 'Bewerbung bearbeiten' : 'Neue Bewerbung'}</h2>
-          <p className="text-sm text-muted">Empfohlene Felder helfen dir später beim Überblick.</p>
+          <p className="text-sm text-muted">
+            {embedded
+              ? 'Passe die Felder an und speichere direkt in dieser Bewerbung.'
+              : 'Empfohlene Felder helfen dir später beim Überblick.'}
+          </p>
         </div>
         {onCancel && (
           <button
@@ -183,9 +215,13 @@ export const ApplicationForm = ({ initial, onSubmit, onCancel }: ApplicationForm
           type="submit"
           className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary"
         >
-          Speichern
+          {submitLabel}
         </button>
-        <span className="text-xs text-muted self-center">Keine Pflichtfelder – du kannst jederzeit speichern.</span>
+        {!embedded && (
+          <span className="text-xs text-muted self-center">
+            Keine Pflichtfelder – du kannst jederzeit speichern.
+          </span>
+        )}
       </div>
     </form>
   );

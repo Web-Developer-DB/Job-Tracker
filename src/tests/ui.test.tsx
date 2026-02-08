@@ -80,7 +80,7 @@ describe('ApplicationList', () => {
       <ApplicationList
         applications={[]}
         taskCounts={{}}
-        onEdit={vi.fn()}
+        onUpdate={vi.fn()}
         onDelete={vi.fn()}
         onStatusChange={vi.fn()}
         totalCount={3}
@@ -99,7 +99,7 @@ describe('ApplicationList', () => {
       <ApplicationList
         applications={[]}
         taskCounts={{}}
-        onEdit={vi.fn()}
+        onUpdate={vi.fn()}
         onDelete={vi.fn()}
         onStatusChange={vi.fn()}
         totalCount={0}
