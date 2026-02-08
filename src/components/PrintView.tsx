@@ -26,12 +26,12 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
   const period = `Zeitraum: ${rangeLabels[filters.range]} · Status: ${filters.status}`;
   // Farben für Status in der Drucktabelle.
   const statusColors: Record<ApplicationStatus, string> = {
-    Entwurf: '#6272a4',
+    Entwurf: '#94a3b8',
     Beworben: '#2563eb',
-    Interview: '#bd93f9',
+    Interview: '#0ea5a4',
     Angebot: '#16a34a',
     Abgelehnt: '#dc2626',
-    Zurückgezogen: '#ffb86c'
+    Zurückgezogen: '#64748b'
   };
 
   return (

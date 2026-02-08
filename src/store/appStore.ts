@@ -22,6 +22,7 @@ import { applyTheme, resolveInitialTheme } from '../services/theme';
 export interface AppStoreState extends AppState {
   isHydrated: boolean;
   hydrate: () => Promise<void>;
+  flushSave: () => Promise<void>;
   addApplication: (data: Partial<JobApplication>) => void;
   updateApplication: (id: string, patch: Partial<JobApplication>) => void;
   deleteApplication: (id: string) => void;
@@ -31,10 +32,17 @@ export interface AppStoreState extends AppState {
   deleteTask: (id: string) => void;
   setFilters: (filters: FilterSettings) => void;
   setTheme: (theme: ThemeMode) => void;
+  setWeeklyGoal: (goal: number) => void;
   exportBackup: () => BackupFile;
   importBackup: (backup: BackupFile) => void;
   resetAll: () => Promise<void>;
 }
+
+const clampWeeklyGoal = (goal: number): number => {
+  const normalized = Math.round(goal);
+  if (!Number.isFinite(normalized)) return defaultState.settings.weeklyGoal;
+  return Math.min(30, Math.max(1, normalized));
+};
 
 // Erstellt den Store. Optional kann ein anderer Storage-Treiber übergeben werden.
 const createState = (driver: StorageDriver = storage): StateCreator<AppStoreState> => {
@@ -54,9 +62,18 @@ const createState = (driver: StorageDriver = storage): StateCreator<AppStoreStat
     }, 250);
   };
 
+  const persistNow = (state: AppStoreState) => {
+    clearScheduledSave();
+    driver.save(pickAppState(state)).catch((err) => console.warn('Auto-save failed.', err));
+  };
+
   return (set, get): AppStoreState => ({
     ...defaultState,
     isHydrated: false,
+    flushSave: async () => {
+      clearScheduledSave();
+      await driver.save(pickAppState(get()));
+    },
     // Initiales Laden aus dem Storage (wird einmal beim Start aufgerufen).
     hydrate: async () => {
       const stored = await driver.load();
@@ -156,7 +173,16 @@ const createState = (driver: StorageDriver = storage): StateCreator<AppStoreStat
       set((state) => {
         const settings = { ...state.settings, theme };
         const next = { ...state, settings };
-        scheduleSave(next as AppStoreState);
+        persistNow(next as AppStoreState);
+        return next;
+      });
+    },
+    // Wochenziel aktualisieren und speichern.
+    setWeeklyGoal: (goal) => {
+      set((state) => {
+        const settings = { ...state.settings, weeklyGoal: clampWeeklyGoal(goal) };
+        const next = { ...state, settings };
+        persistNow(next as AppStoreState);
         return next;
       });
     },
@@ -170,7 +196,7 @@ const createState = (driver: StorageDriver = storage): StateCreator<AppStoreStat
         isHydrated: true
       }));
       applyTheme(restored.settings.theme);
-      scheduleSave(get());
+      persistNow(get());
     },
     // Alles löschen und auf Standard zurücksetzen.
     resetAll: async () => {

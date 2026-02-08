@@ -26,6 +26,14 @@ describe('ApplicationForm', () => {
     expect(handleSubmit).toHaveBeenCalled();
     expect(handleSubmit.mock.calls[0][0].company).toBe('Nova');
   });
+
+  it('suggests a follow-up date when switching status to Beworben', () => {
+    render(<ApplicationForm onSubmit={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/^status$/i), { target: { value: 'Beworben' } });
+    const followUpInput = screen.getByLabelText(/follow-up-datum/i) as HTMLInputElement;
+    expect(followUpInput.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
 });
 
 describe('Dashboard', () => {
@@ -53,7 +61,7 @@ describe('Dashboard', () => {
       followUpsDue: []
     };
 
-    render(<Dashboard stats={stats} />);
+    render(<Dashboard stats={stats} weeklyGoal={5} onWeeklyGoalChange={vi.fn()} />);
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText(/gesamt/i)).toBeInTheDocument();
   });
@@ -80,9 +88,12 @@ describe('ApplicationList', () => {
       <ApplicationList
         applications={[]}
         taskCounts={{}}
+        tasksByApplication={{}}
         onUpdate={vi.fn()}
         onDelete={vi.fn()}
         onStatusChange={vi.fn()}
+        onTaskUpdate={vi.fn()}
+        onTaskDelete={vi.fn()}
         totalCount={3}
         hasActiveFilters
         onClearFilters={handleClear}
@@ -99,9 +110,12 @@ describe('ApplicationList', () => {
       <ApplicationList
         applications={[]}
         taskCounts={{}}
+        tasksByApplication={{}}
         onUpdate={vi.fn()}
         onDelete={vi.fn()}
         onStatusChange={vi.fn()}
+        onTaskUpdate={vi.fn()}
+        onTaskDelete={vi.fn()}
         totalCount={0}
       />
     );

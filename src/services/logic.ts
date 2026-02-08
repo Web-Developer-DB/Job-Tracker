@@ -32,7 +32,8 @@ export const defaultState: AppState = {
     sort: 'createdAt',
     filterStatus: 'Alle',
     filterRange: 'all',
-    search: ''
+    search: '',
+    weeklyGoal: 5
   }
 };
 

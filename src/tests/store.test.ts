@@ -11,7 +11,8 @@ const baseState: AppState = {
     sort: 'createdAt',
     filterStatus: 'Alle',
     filterRange: 'all',
-    search: ''
+    search: '',
+    weeklyGoal: 5
   }
 };
 
@@ -45,5 +46,67 @@ describe('app store', () => {
 
     expect(driver.clear).toHaveBeenCalledTimes(1);
     expect(driver.save).not.toHaveBeenCalled();
+  });
+
+  it('persists weekly goal immediately', async () => {
+    const saveMock = vi.fn<(state: AppState) => Promise<void>>(async () => undefined);
+    const driver: StorageDriver = {
+      load: vi.fn(async () => baseState),
+      save: saveMock,
+      clear: vi.fn(async () => undefined)
+    };
+
+    const store = createAppStore(driver);
+    store.getState().setWeeklyGoal(9);
+    await flush();
+
+    expect(saveMock).toHaveBeenCalledTimes(1);
+    const savedState = saveMock.mock.calls[0][0] as AppState;
+    expect(savedState.settings.weeklyGoal).toBe(9);
+  });
+
+  it('flushes pending save on flushSave', async () => {
+    const saveMock = vi.fn<(state: AppState) => Promise<void>>(async () => undefined);
+    const driver: StorageDriver = {
+      load: vi.fn(async () => baseState),
+      save: saveMock,
+      clear: vi.fn(async () => undefined)
+    };
+
+    const store = createAppStore(driver);
+    store.getState().addApplication({ company: 'Acme' });
+    expect(saveMock).toHaveBeenCalledTimes(0);
+
+    await store.getState().flushSave();
+    expect(saveMock).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(300);
+    await flush();
+    expect(saveMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('hydrates missing weeklyGoal with default value', async () => {
+    const legacyState = {
+      applications: [],
+      tasks: [],
+      settings: {
+        theme: 'light',
+        sort: 'createdAt',
+        filterStatus: 'Alle',
+        filterRange: 'all',
+        search: ''
+      }
+    } as unknown as AppState;
+
+    const driver: StorageDriver = {
+      load: vi.fn(async () => legacyState),
+      save: vi.fn(async () => undefined),
+      clear: vi.fn(async () => undefined)
+    };
+
+    const store = createAppStore(driver);
+    await store.getState().hydrate();
+
+    expect(store.getState().settings.weeklyGoal).toBe(5);
   });
 });
