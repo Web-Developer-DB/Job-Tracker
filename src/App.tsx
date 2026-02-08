@@ -17,6 +17,10 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 // Hauptkomponente: verbindet Store, Logik und UI.
 const App = () => {
   // Alles, was wir aus dem globalen Store brauchen.
@@ -61,8 +65,7 @@ const App = () => {
     const checkInstalled = () => {
       const isStandalone =
         window.matchMedia?.('(display-mode: standalone)').matches ||
-        // @ts-expect-error - iOS Safari nutzt navigator.standalone
-        window.navigator.standalone;
+        (window.navigator as NavigatorWithStandalone).standalone;
       setIsInstalled(Boolean(isStandalone));
     };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ApplicationForm } from '../components/ApplicationForm';
 import { Dashboard } from '../components/Dashboard';
@@ -14,14 +14,13 @@ const baseFilters: FilterSettings = {
 };
 
 describe('ApplicationForm', () => {
-  it('submits entered values', async () => {
-    const user = userEvent.setup();
+  it('submits entered values', () => {
     const handleSubmit = vi.fn();
 
     render(<ApplicationForm onSubmit={handleSubmit} />);
 
-    await user.type(screen.getByLabelText(/unternehmen/i), 'Nova');
-    await user.click(screen.getByRole('button', { name: /speichern/i }));
+    fireEvent.change(screen.getByLabelText(/unternehmen/i), { target: { value: 'Nova' } });
+    fireEvent.click(screen.getByRole('button', { name: /speichern/i }));
 
     expect(handleSubmit).toHaveBeenCalled();
     expect(handleSubmit.mock.calls[0][0].company).toBe('Nova');

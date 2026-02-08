@@ -101,7 +101,9 @@ export const changeStatus = (
     if (application.id !== id) return application;
     const history = application.history ? [...application.history] : [];
     history.push({ status, date: now.toISOString() });
-    const followUpDate = application.followUpDate ?? calculateFollowUpDate(status, now) ?? undefined;
+    const calculatedFollowUp = calculateFollowUpDate(status, now) ?? undefined;
+    const followUpDate =
+      status === 'Abgelehnt' || status === 'Zurückgezogen' ? undefined : application.followUpDate ?? calculatedFollowUp;
     return {
       ...application,
       status,
@@ -154,10 +156,11 @@ export const filterApplications = (
   filters: Pick<FilterSettings, 'status' | 'range' | 'search'>,
   now: Date = new Date()
 ): JobApplication[] => {
+  const search = filters.search.trim().toLowerCase();
+
   return applications.filter((application) => {
     if (filters.status !== 'Alle' && application.status !== filters.status) return false;
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
+    if (search) {
       const company = application.company?.toLowerCase() ?? '';
       const position = application.position?.toLowerCase() ?? '';
       if (!company.includes(search) && !position.includes(search)) return false;

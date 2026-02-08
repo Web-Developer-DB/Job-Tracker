@@ -39,10 +39,15 @@ export interface AppStoreState extends AppState {
 // Erstellt den Store. Optional kann ein anderer Storage-Treiber übergeben werden.
 const createState = (driver: StorageDriver = storage): StateCreator<AppStoreState> => {
   let saveTimeout: ReturnType<typeof setTimeout> | undefined;
+  const clearScheduledSave = () => {
+    if (!saveTimeout) return;
+    clearTimeout(saveTimeout);
+    saveTimeout = undefined;
+  };
 
   // Speichern mit kleinem Debounce, damit nicht bei jedem Klick geschrieben wird.
   const scheduleSave = (state: AppStoreState) => {
-    if (saveTimeout) clearTimeout(saveTimeout);
+    clearScheduledSave();
     const payload = pickAppState(state);
     saveTimeout = setTimeout(() => {
       driver.save(payload).catch((err) => console.warn('Auto-save failed.', err));
@@ -169,6 +174,7 @@ const createState = (driver: StorageDriver = storage): StateCreator<AppStoreStat
     },
     // Alles löschen und auf Standard zurücksetzen.
     resetAll: async () => {
+      clearScheduledSave();
       set(() => ({
         ...defaultState,
         isHydrated: true

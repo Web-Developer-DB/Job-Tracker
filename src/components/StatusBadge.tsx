@@ -3,10 +3,10 @@ import type { ApplicationStatus } from '../types';
 // Jede Status-Art bekommt eine feste Farbe, damit sie überall gleich aussieht.
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
   Entwurf: '#6272a4',
-  Beworben: '#8be9fd',
+  Beworben: '#2563eb',
   Interview: '#bd93f9',
-  Angebot: '#50fa7b',
-  Abgelehnt: '#ff5555',
+  Angebot: '#16a34a',
+  Abgelehnt: '#dc2626',
   Zurückgezogen: '#ffb86c'
 };
 
@@ -25,7 +25,7 @@ export const StatusBadge = ({ status }: { status: ApplicationStatus }) => {
   const color = STATUS_COLORS[status];
   return (
     <span
-      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
+      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold"
       style={{
         color,
         borderColor: hexToRgba(color, 0.4),

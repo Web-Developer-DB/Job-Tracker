@@ -27,10 +27,10 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
   // Farben für Status in der Drucktabelle.
   const statusColors: Record<ApplicationStatus, string> = {
     Entwurf: '#6272a4',
-    Beworben: '#8be9fd',
+    Beworben: '#2563eb',
     Interview: '#bd93f9',
-    Angebot: '#50fa7b',
-    Abgelehnt: '#ff5555',
+    Angebot: '#16a34a',
+    Abgelehnt: '#dc2626',
     Zurückgezogen: '#ffb86c'
   };
 
@@ -65,7 +65,9 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
               <td className="py-2">{row.date}</td>
               <td className="py-2 break-words">{row.company || '-'}</td>
               <td className="py-2 break-words">{row.position || '-'}</td>
-              <td className="py-2" style={{ color: statusColors[row.status] }}>{row.status}</td>
+              <td className="py-2 text-base font-semibold" style={{ color: statusColors[row.status] }}>
+                {row.status}
+              </td>
               <td className="py-2">{row.result}</td>
             </tr>
           ))}

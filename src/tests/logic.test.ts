@@ -36,6 +36,12 @@ describe('application CRUD', () => {
     expect(updated[0].status).toBe('Interview');
     expect(updated[0].history?.length).toBe(1);
   });
+
+  it('clears follow-up when moving to a terminal status', () => {
+    const app = createApplication({ company: 'Nova', followUpDate: '2025-01-20' }, baseDate);
+    const updated = changeStatus([app], app.id, 'Abgelehnt', baseDate);
+    expect(updated[0].followUpDate).toBeUndefined();
+  });
 });
 
 describe('follow-up logic', () => {
@@ -58,6 +64,16 @@ describe('filtering and sorting', () => {
     });
     expect(filtered).toHaveLength(1);
     expect(filtered[0].company).toBe('Alpha');
+  });
+
+  it('ignores leading/trailing spaces in search', () => {
+    const apps = [createApplication({ company: 'Alpha', status: 'Beworben' }, baseDate)];
+    const filtered = filterApplications(apps, {
+      status: 'Alle',
+      range: 'all',
+      search: '  alp  '
+    });
+    expect(filtered).toHaveLength(1);
   });
 
   it('sorts by follow-up date', () => {
