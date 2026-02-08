@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ApplicationForm } from '../components/ApplicationForm';
+import { ApplicationList } from '../components/ApplicationList';
 import { Dashboard } from '../components/Dashboard';
 import { FiltersBar } from '../components/FiltersBar';
 import type { DashboardStats, FilterSettings } from '../types';
@@ -67,5 +68,44 @@ describe('FiltersBar', () => {
 
     await user.selectOptions(screen.getByLabelText(/sortieren/i), 'status');
     expect(handleChange).toHaveBeenCalled();
+  });
+});
+
+describe('ApplicationList', () => {
+  it('shows filter empty state and allows reset', async () => {
+    const user = userEvent.setup();
+    const handleClear = vi.fn();
+
+    render(
+      <ApplicationList
+        applications={[]}
+        taskCounts={{}}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onStatusChange={vi.fn()}
+        totalCount={3}
+        hasActiveFilters
+        onClearFilters={handleClear}
+      />
+    );
+
+    expect(screen.getByText(/keine treffer für die aktuellen filter/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /filter zurücksetzen/i }));
+    expect(handleClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows initial empty state when no applications exist', () => {
+    render(
+      <ApplicationList
+        applications={[]}
+        taskCounts={{}}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onStatusChange={vi.fn()}
+        totalCount={0}
+      />
+    );
+
+    expect(screen.getByText(/noch keine bewerbungen/i)).toBeInTheDocument();
   });
 });

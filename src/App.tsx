@@ -100,6 +100,11 @@ const App = () => {
     [settings]
   );
 
+  const hasActiveFilters = useMemo(
+    () => filters.status !== 'Alle' || filters.range !== 'all' || filters.search.trim().length > 0,
+    [filters]
+  );
+
   // Bewerbungen nach Filter/Suche/Sortierung vorbereiten.
   const filteredApplications = useMemo(() => {
     const filtered = filterApplications(applications, {
@@ -296,6 +301,16 @@ const App = () => {
           onEdit={(id) => setEditingId(id)}
           onDelete={handleDelete}
           onStatusChange={changeStatus}
+          totalCount={applications.length}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={() =>
+            setFilters({
+              ...filters,
+              status: 'Alle',
+              range: 'all',
+              search: ''
+            })
+          }
         />
 
         <Planner

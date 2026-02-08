@@ -8,6 +8,9 @@ interface ApplicationListProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: ApplicationStatus) => void;
+  totalCount?: number;
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 }
 
 // Liste aller Bewerbungen inkl. einfacher Animationen.
@@ -16,10 +19,33 @@ export const ApplicationList = ({
   taskCounts,
   onEdit,
   onDelete,
-  onStatusChange
+  onStatusChange,
+  totalCount = 0,
+  hasActiveFilters = false,
+  onClearFilters
 }: ApplicationListProps) => {
   // Leerer Zustand, wenn es noch keine Bewerbungen gibt.
   if (applications.length === 0) {
+    if (totalCount > 0 && hasActiveFilters) {
+      return (
+        <div className="card p-8 text-center">
+          <p className="text-muted">Keine Treffer für die aktuellen Filter.</p>
+          <p className="mt-2 text-sm text-muted">
+            Es sind {totalCount} Bewerbungen gespeichert, aber keine passt zu Suche, Status oder Zeitraum.
+          </p>
+          {onClearFilters && (
+            <button
+              type="button"
+              onClick={onClearFilters}
+              className="mt-4 rounded-full border border-border px-4 py-2 text-sm"
+            >
+              Filter zurücksetzen
+            </button>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="card p-8 text-center text-muted">
         Noch keine Bewerbungen – lege deine erste Bewerbung an.

@@ -51,24 +51,24 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
           <col style={{ width: '11%' }} />
         </colgroup>
         <thead>
-          <tr className="text-left border-b border-gray-300">
-            <th className="py-2">Erstellt am</th>
-            <th className="py-2">Unternehmen</th>
-            <th className="py-2">Position</th>
-            <th className="py-2">Status</th>
-            <th className="py-2">Ergebnis</th>
+          <tr className="text-left">
+            <th className="py-2 border-b border-gray-300">Erstellt am</th>
+            <th className="py-2 border-b border-gray-300">Unternehmen</th>
+            <th className="py-2 border-b border-gray-300">Position</th>
+            <th className="py-2 border-b border-gray-300">Status</th>
+            <th className="py-2 border-b border-gray-300">Ergebnis</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={`${row.company}-${index}`} className="border-b border-gray-200">
-              <td className="py-2">{row.date}</td>
-              <td className="py-2 break-words">{row.company || '-'}</td>
-              <td className="py-2 break-words">{row.position || '-'}</td>
-              <td className="py-2 text-base font-semibold" style={{ color: statusColors[row.status] }}>
+            <tr key={`${row.company}-${index}`}>
+              <td className="py-2 border-b border-gray-200">{row.date}</td>
+              <td className="py-2 border-b border-gray-200 break-words">{row.company || '-'}</td>
+              <td className="py-2 border-b border-gray-200 break-words">{row.position || '-'}</td>
+              <td className="py-2 border-b border-gray-200 text-base font-semibold" style={{ color: statusColors[row.status] }}>
                 {row.status}
               </td>
-              <td className="py-2">{row.result}</td>
+              <td className="py-2 border-b border-gray-200">{row.result}</td>
             </tr>
           ))}
         </tbody>
