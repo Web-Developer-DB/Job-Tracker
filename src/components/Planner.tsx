@@ -71,9 +71,12 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
   // Neue Aufgabe abspeichern und Formular zurücksetzen.
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+
     onAddTask({
       applicationId: applicationId || 'unknown',
-      title: title.trim(),
+      title: trimmedTitle,
       dueDate: dueDate || undefined,
       type
     });
@@ -84,19 +87,18 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
   };
 
   return (
-    <section className="card p-6 space-y-4">
+    <section className="card space-y-4 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-xl">Planer</h2>
-          <p className="text-sm text-muted">Aufgaben und Termine pro Bewerbung.</p>
+          <p className="text-sm text-muted">Halte Follow-ups, To-dos und Interviewtermine im Flow.</p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex flex-wrap gap-2 rounded-full border border-border bg-surface-2 p-1">
           {(Object.keys(viewLabels) as ViewMode[]).map((mode) => (
             <button
               key={mode}
-              className={`rounded-full px-4 py-2 text-xs font-semibold ${
-                view === mode ? 'bg-accent text-on-primary' : 'border border-border text-muted'
-              }`}
+              className={`btn px-3 py-1 text-xs ${view === mode ? 'btn-primary' : 'btn-ghost'}`}
               type="button"
               onClick={() => setView(mode)}
             >
@@ -106,15 +108,16 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+      <form onSubmit={handleSubmit} className="grid gap-3 lg:grid-cols-[2fr_1.1fr_1fr_1fr_auto]">
         <input
-          className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+          className="input-field"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Neue Aufgabe …"
         />
+
         <select
-          className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+          className="select-field"
           value={applicationId}
           onChange={(event) => setApplicationId(event.target.value)}
         >
@@ -125,8 +128,9 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
             </option>
           ))}
         </select>
+
         <select
-          className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+          className="select-field"
           value={type}
           onChange={(event) => setType(event.target.value as Task['type'])}
         >
@@ -134,15 +138,17 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
           <option value="interview">Interview</option>
           <option value="reminder">Erinnerung</option>
         </select>
+
         <input
           type="date"
-          className="rounded-lg border border-border bg-surface-2 px-3 py-2"
+          className="input-field"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
         />
+
         <button
           type="submit"
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary"
+          className="btn btn-primary"
         >
           Hinzufügen
         </button>
@@ -150,18 +156,19 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <p className="text-sm text-muted">Keine Aufgaben in dieser Ansicht.</p>
+          <p className="card-soft p-4 text-sm text-muted">Keine Aufgaben in dieser Ansicht. Plane den nächsten kleinen Schritt.</p>
         ) : (
           filtered.map((task) => (
-            <div key={task.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-4 py-3">
-              <label className="flex items-center gap-3">
+            <div key={task.id} className="card-soft flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <label className="flex min-w-0 flex-1 items-start gap-3">
                 <input
                   type="checkbox"
                   checked={task.done}
                   onChange={(event) => onUpdateTask(task.id, { done: event.target.checked })}
+                  className="mt-1"
                 />
-                <div>
-                  <p className={`font-medium ${task.done ? 'line-through text-muted' : ''}`}>{task.title || 'Ohne Titel'}</p>
+                <div className="min-w-0">
+                  <p className={`truncate font-medium ${task.done ? 'text-muted line-through' : 'text-text'}`}>{task.title || 'Ohne Titel'}</p>
                   <p className="text-xs text-muted">
                     {applicationsMap[task.applicationId] || 'Ohne Bewerbung'} · {typeLabels[task.type]}
                     {task.dueDate ? ` · ${formatDateDE(task.dueDate)}` : ''}
@@ -170,7 +177,7 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
               </label>
               <button
                 type="button"
-                className="rounded-full border border-danger px-3 py-1 text-xs text-danger"
+                className="btn btn-danger"
                 onClick={() => onDeleteTask(task.id)}
               >
                 Löschen

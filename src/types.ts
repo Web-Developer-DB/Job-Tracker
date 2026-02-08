@@ -44,6 +44,8 @@ export interface Task {
   title: string;
   dueDate?: string;
   done: boolean;
+  completionNote?: string;
+  completedAt?: string;
   type: 'task' | 'interview' | 'reminder';
   createdAt: string;
   updatedAt: string;
@@ -56,6 +58,7 @@ export interface Settings {
   filterStatus: ApplicationStatus | 'Alle';
   filterRange: FilterRange;
   search: string;
+  weeklyGoal: number;
 }
 
 // Form- und Filterwerte für die UI.

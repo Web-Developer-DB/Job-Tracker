@@ -8,7 +8,7 @@ import { Planner } from './components/Planner';
 import { PrintView } from './components/PrintView';
 import { Skeleton } from './components/Skeleton';
 import { filterApplications, getDashboardStats, sortApplications } from './services/logic';
-import type { FilterSettings } from './types';
+import type { FilterSettings, Task } from './types';
 import { useAppStore } from './store/appStore';
 
 // Browser-Event für die Installationsaufforderung (nicht in TS definiert).
@@ -16,6 +16,16 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
+
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+const getMotivationLine = (count: number) => {
+  if (count === 0) return 'Heute ist ein guter Tag für den ersten Eintrag.';
+  if (count < 4) return 'Du bist im Flow. Ein zusätzlicher Eintrag verstärkt den Effekt.';
+  return 'Starker Fortschritt. Halte die Dynamik mit Follow-ups hoch.';
+};
 
 // Hauptkomponente: verbindet Store, Logik und UI.
 const App = () => {
@@ -26,6 +36,7 @@ const App = () => {
     settings,
     isHydrated,
     hydrate,
+    flushSave,
     addApplication,
     updateApplication,
     deleteApplication,
@@ -35,13 +46,12 @@ const App = () => {
     deleteTask,
     setFilters,
     setTheme,
+    setWeeklyGoal,
     exportBackup,
     importBackup,
     resetAll
   } = useAppStore();
 
-  // ID der Bewerbung, die gerade bearbeitet wird.
-  const [editingId, setEditingId] = useState<string | null>(null);
   // Installationsstatus der PWA.
   const [isInstalled, setIsInstalled] = useState(false);
   // Speichert das Installations-Event, damit wir es auf Button-Klick auslösen können.
@@ -61,8 +71,7 @@ const App = () => {
     const checkInstalled = () => {
       const isStandalone =
         window.matchMedia?.('(display-mode: standalone)').matches ||
-        // @ts-expect-error - iOS Safari nutzt navigator.standalone
-        window.navigator.standalone;
+        (window.navigator as NavigatorWithStandalone).standalone;
       setIsInstalled(Boolean(isStandalone));
     };
 
@@ -86,6 +95,27 @@ const App = () => {
     };
   }, []);
 
+  // Offene Saves flushen, wenn die App in den Hintergrund geht oder geschlossen wird.
+  useEffect(() => {
+    const handlePageHide = () => {
+      void flushSave();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        void flushSave();
+      }
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [flushSave]);
+
   // Filter-Einstellungen aus dem Store auf ein Filter-Objekt mappen.
   const filters: FilterSettings = useMemo(
     () => ({
@@ -95,6 +125,11 @@ const App = () => {
       sort: settings.sort
     }),
     [settings]
+  );
+
+  const hasActiveFilters = useMemo(
+    () => filters.status !== 'Alle' || filters.range !== 'all' || filters.search.trim().length > 0,
+    [filters]
   );
 
   // Bewerbungen nach Filter/Suche/Sortierung vorbereiten.
@@ -110,13 +145,34 @@ const App = () => {
   // Dashboard-KPIs berechnen.
   const stats = useMemo(() => getDashboardStats(applications), [applications]);
 
-  // Anzahl Aufgaben je Bewerbung (für die Kartenanzeige).
-  const taskCounts = useMemo(() => {
-    return tasks.reduce<Record<string, number>>((acc, task) => {
-      acc[task.applicationId] = (acc[task.applicationId] ?? 0) + 1;
+  const tasksByApplication = useMemo(() => {
+    const grouped = tasks.reduce<Record<string, Task[]>>((acc, task) => {
+      if (!task.applicationId || task.applicationId === 'unknown') return acc;
+      const list = acc[task.applicationId] ?? [];
+      list.push(task);
+      acc[task.applicationId] = list;
       return acc;
     }, {});
+
+    for (const key of Object.keys(grouped)) {
+      grouped[key] = [...grouped[key]].sort((a, b) => {
+        if (a.done !== b.done) return Number(a.done) - Number(b.done);
+        const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        return aDue - bDue;
+      });
+    }
+
+    return grouped;
   }, [tasks]);
+
+  // Anzahl Aufgaben je Bewerbung (für die Kartenanzeige).
+  const taskCounts = useMemo(() => {
+    return Object.entries(tasksByApplication).reduce<Record<string, number>>((acc, [applicationId, list]) => {
+      acc[applicationId] = list.length;
+      return acc;
+    }, {});
+  }, [tasksByApplication]);
 
   // Druckfunktion von react-to-print.
   const handlePrint = useReactToPrint({
@@ -138,14 +194,14 @@ const App = () => {
     );
   };
 
-  // Formular speichern: entweder aktualisieren oder neu anlegen.
-  const handleSubmit = (values: ApplicationFormValues) => {
-    if (editingId) {
-      updateApplication(editingId, values);
-    } else {
-      addApplication(values);
-    }
-    setEditingId(null);
+  // Neues Formular oben: erstellt immer einen neuen Datensatz.
+  const handleCreate = (values: ApplicationFormValues) => {
+    addApplication(values);
+  };
+
+  // Bearbeiten in der Karte: aktualisiert den gewählten Datensatz.
+  const handleUpdate = (id: string, values: ApplicationFormValues) => {
+    updateApplication(id, values);
   };
 
   // Löschen mit Sicherheitsabfrage.
@@ -213,87 +269,119 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-base text-text px-6 py-8">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-3xl">Job-Tracker und Planer</h1>
-            <p className="text-sm text-muted">Offline-fähig, lokal gespeichert, bereit für deinen Alltag.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {!isInstalled && (
+    <div className="min-h-screen bg-base px-4 py-6 text-text sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <header className="card p-5 md:p-6">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <span className="chip">Offline-fähig</span>
+                <span className="chip">Lokal gespeichert</span>
+                <span className="chip">PWA bereit</span>
+              </div>
+              <div>
+                <h1 className="font-display text-3xl md:text-4xl">
+                  Job Tracker <span className="text-gradient">Momentum</span>
+                </h1>
+                <p className="mt-2 text-sm text-muted">{getMotivationLine(stats.thisWeek)}</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="card-soft px-3 py-2">
+                  <p className="text-xs text-muted">Bewerbungen diese Woche</p>
+                  <p className="mono text-lg font-semibold">{stats.thisWeek}</p>
+                </div>
+                <div className="card-soft px-3 py-2">
+                  <p className="text-xs text-muted">Fällige Follow-ups</p>
+                  <p className="mono text-lg font-semibold">{stats.followUpsDue.length}</p>
+                </div>
+                <div className="card-soft px-3 py-2">
+                  <p className="text-xs text-muted">Aktive Aufgaben</p>
+                  <p className="mono text-lg font-semibold">{tasks.filter((task) => !task.done).length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex max-w-[380px] flex-wrap items-center justify-end gap-2">
+              {!isInstalled && (
+                <button type="button" onClick={handleInstall} className="btn btn-secondary">
+                  App installieren
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={handleInstall}
-                className="rounded-full border border-border px-4 py-2 text-sm"
+                onClick={() => setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
+                className="btn btn-secondary"
               >
-                App installieren
+                {settings.theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
-              className="rounded-full border border-border px-4 py-2 text-sm"
-            >
-              {settings.theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'}
-            </button>
-            <button
-              type="button"
-              onClick={handleBackup}
-              className="rounded-full border border-border px-4 py-2 text-sm"
-            >
-              Sichern
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded-full border border-border px-4 py-2 text-sm"
-            >
-              Wiederherstellen
-            </button>
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary"
-            >
-              PDF / Drucken
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="rounded-full border border-danger px-4 py-2 text-sm text-danger"
-            >
-              Alles löschen
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={handleRestore}
-            />
+
+              <button type="button" onClick={handleBackup} className="btn btn-secondary">
+                Sichern
+              </button>
+
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-secondary">
+                Wiederherstellen
+              </button>
+
+              <button type="button" onClick={handlePrint} className="btn btn-primary">
+                PDF / Drucken
+              </button>
+
+              <button type="button" onClick={handleReset} className="btn btn-danger">
+                Alles löschen
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={handleRestore}
+              />
+            </div>
           </div>
         </header>
 
-        <Dashboard stats={stats} />
+        <Dashboard
+          stats={stats}
+          weeklyGoal={settings.weeklyGoal}
+          onWeeklyGoalChange={setWeeklyGoal}
+        />
 
         <FiltersBar value={filters} onChange={setFilters} />
 
-        <ApplicationForm
-          // Key sorgt dafür, dass das Formular sauber neu initialisiert wird.
-          key={editingId ?? 'new'}
-          initial={applications.find((application) => application.id === editingId)}
-          onSubmit={handleSubmit}
-          onCancel={editingId ? () => setEditingId(null) : undefined}
-        />
+        <ApplicationForm onSubmit={handleCreate} resetAfterSubmit />
 
-        <ApplicationList
-          applications={filteredApplications}
-          taskCounts={taskCounts}
-          onEdit={(id) => setEditingId(id)}
-          onDelete={handleDelete}
-          onStatusChange={changeStatus}
-        />
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="font-display text-xl">Bewerbungen im Überblick</h2>
+            <span className="chip">
+              {filteredApplications.length} sichtbar · {applications.length} gesamt
+            </span>
+          </div>
+
+          <ApplicationList
+            applications={filteredApplications}
+            taskCounts={taskCounts}
+            tasksByApplication={tasksByApplication}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onStatusChange={changeStatus}
+            onTaskUpdate={updateTask}
+            onTaskDelete={deleteTask}
+            totalCount={applications.length}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={() =>
+              setFilters({
+                ...filters,
+                status: 'Alle',
+                range: 'all',
+                search: ''
+              })
+            }
+          />
+        </section>
 
         <Planner
           tasks={tasks}
@@ -304,13 +392,13 @@ const App = () => {
         />
       </div>
 
-      <footer className="mx-auto mt-12 max-w-6xl border-t border-border pt-6 text-sm text-muted">
+      <footer className="mx-auto mt-12 max-w-7xl border-t border-border pt-6 text-sm text-muted">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span>Lizenz: MIT</span>
           <span>Projekt von Dimitri B · Erstellt mit Unterstützung von Codex-Agenten</span>
           <a
             href="https://github.com/Web-Developer-DB/Job-Tracker"
-            className="text-primary underline"
+            className="font-medium text-primary hover:underline"
             target="_blank"
             rel="noreferrer"
           >
