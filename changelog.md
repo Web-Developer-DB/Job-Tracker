@@ -11,7 +11,7 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 - Keine
 
 ### Geändert 🔁
-- Keine
+- 🗂️ Reihenfolge im Hauptlayout angepasst: Die Komponente **Planer** steht jetzt direkt unter **Suche und Fokus**.
 
 ### Behoben 🛠️
 - Keine
