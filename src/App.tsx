@@ -353,6 +353,14 @@ const App = () => {
 
         <FiltersBar value={filters} onChange={setFilters} />
 
+        <Planner
+          tasks={tasks}
+          applications={applications}
+          onAddTask={addTask}
+          onUpdateTask={updateTask}
+          onDeleteTask={deleteTask}
+        />
+
         <section className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-display text-xl">Bewerbungen im Überblick</h2>
@@ -382,14 +390,6 @@ const App = () => {
             }
           />
         </section>
-
-        <Planner
-          tasks={tasks}
-          applications={applications}
-          onAddTask={addTask}
-          onUpdateTask={updateTask}
-          onDeleteTask={deleteTask}
-        />
       </div>
 
       <footer className="mx-auto mt-12 max-w-7xl border-t border-border pt-6 text-sm text-muted">
