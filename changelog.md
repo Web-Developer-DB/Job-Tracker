@@ -12,6 +12,7 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 
 ### Geändert 🔁
 - 🗂️ Reihenfolge im Hauptlayout angepasst: Die Komponente **Planer** steht jetzt direkt unter **Suche und Fokus**.
+- 🧾 Druck-/PDF-Layout überarbeitet: klarere Spaltenbreiten, bessere Abstände, Status als lesbare Chips, zusätzliche Metadaten und optimierte A4-Druckränder.
 
 ### Behoben 🛠️
 - 🖨️ Druckdialog in installierter Chrome-PWA (Windows): Mehrfaches Drucken funktioniert wieder zuverlässig; der zweite Klick auf „PDF / Drucken“ öffnet erneut den Druckdialog.
