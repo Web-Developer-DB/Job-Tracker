@@ -14,7 +14,7 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 - 🗂️ Reihenfolge im Hauptlayout angepasst: Die Komponente **Planer** steht jetzt direkt unter **Suche und Fokus**.
 
 ### Behoben 🛠️
-- Keine
+- 🖨️ Druckdialog in installierter Chrome-PWA (Windows): Mehrfaches Drucken funktioniert wieder zuverlässig; der zweite Klick auf „PDF / Drucken“ öffnet erneut den Druckdialog.
 
 ---
 
