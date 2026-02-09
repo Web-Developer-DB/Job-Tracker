@@ -1,10 +1,11 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AppState, JobApplication } from '../types';
 
 const mockUseAppStore = vi.fn();
 const mockPrint = vi.fn();
+const originalMatchMedia = window.matchMedia;
 
 vi.mock('../store/appStore', () => ({
   useAppStore: () => mockUseAppStore()
@@ -69,6 +70,11 @@ describe('App', () => {
     mockPrint.mockReset();
   });
 
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+    vi.restoreAllMocks();
+  });
+
   it('renders skeleton while store is not hydrated', () => {
     const store = createStoreSlice();
     store.isHydrated = false;
@@ -96,6 +102,31 @@ describe('App', () => {
 
     fireEvent(window, new Event('pagehide'));
     expect(store.flushSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses native printing in standalone mode', async () => {
+    const user = userEvent.setup();
+    const store = createStoreSlice();
+    mockUseAppStore.mockReturnValue(store);
+
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(display-mode: standalone)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    })) as unknown as typeof window.matchMedia;
+
+    const nativePrintSpy = vi.spyOn(window, 'print').mockImplementation(() => undefined);
+
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /pdf \/ drucken/i }));
+
+    expect(nativePrintSpy).toHaveBeenCalledTimes(1);
+    expect(mockPrint).not.toHaveBeenCalled();
   });
 
   it('resets filters from empty filtered list view', async () => {
