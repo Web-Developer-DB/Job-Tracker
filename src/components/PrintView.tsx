@@ -35,44 +35,62 @@ export const PrintView = ({ applications, filters, title = 'Bewerbungsnachweis' 
   };
 
   return (
-    <div className="print-container p-8 bg-white text-black">
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">{title}</h1>
-        <p className="text-sm">{period}</p>
-        <p className="text-xs text-gray-600">Erstellt am: {date}</p>
+    <div className="print-container bg-white text-black">
+      <header className="print-header">
+        <div>
+          <h1 className="print-title">{title}</h1>
+          <p className="print-subtitle">{period}</p>
+        </div>
+        <div className="print-meta">
+          <p>
+            <span>Erstellt am</span> {date}
+          </p>
+          <p>
+            <span>Einträge</span> {rows.length}
+          </p>
+        </div>
       </header>
 
-      <table className="w-full text-sm">
-        <colgroup>
-          <col style={{ width: '12%' }} />
-          <col style={{ width: '33%' }} />
-          <col style={{ width: '33%' }} />
-          <col style={{ width: '11%' }} />
-          <col style={{ width: '11%' }} />
-        </colgroup>
-        <thead>
-          <tr className="text-left">
-            <th className="py-2 border-b border-gray-300">Erstellt am</th>
-            <th className="py-2 border-b border-gray-300">Unternehmen</th>
-            <th className="py-2 border-b border-gray-300">Position</th>
-            <th className="py-2 border-b border-gray-300">Status</th>
-            <th className="py-2 border-b border-gray-300">Ergebnis</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={`${row.company}-${index}`}>
-              <td className="py-2 border-b border-gray-200">{row.date}</td>
-              <td className="py-2 border-b border-gray-200 break-words">{row.company || '-'}</td>
-              <td className="py-2 border-b border-gray-200 break-words">{row.position || '-'}</td>
-              <td className="py-2 border-b border-gray-200 text-base font-semibold" style={{ color: statusColors[row.status] }}>
-                {row.status}
-              </td>
-              <td className="py-2 border-b border-gray-200">{row.result}</td>
+      {rows.length === 0 ? (
+        <p className="print-empty">Keine Bewerbungen für den gewählten Filter gefunden.</p>
+      ) : (
+        <table className="print-report-table">
+          <colgroup>
+            <col className="print-col-date" />
+            <col className="print-col-company" />
+            <col className="print-col-position" />
+            <col className="print-col-status" />
+            <col className="print-col-result" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Erstellt am</th>
+              <th>Unternehmen</th>
+              <th>Position</th>
+              <th>Status</th>
+              <th>Ergebnis</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={`${row.company}-${index}`}>
+                <td className="print-cell-date">{row.date || '-'}</td>
+                <td className="print-cell-company">{row.company || '-'}</td>
+                <td className="print-cell-position">{row.position || '-'}</td>
+                <td className="print-cell-status">
+                  <span
+                    className="print-status-chip"
+                    style={{ color: statusColors[row.status], borderColor: statusColors[row.status] }}
+                  >
+                    {row.status}
+                  </span>
+                </td>
+                <td className="print-cell-result">{row.result}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };
