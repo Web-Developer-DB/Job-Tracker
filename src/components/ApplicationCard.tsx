@@ -78,9 +78,9 @@ export const ApplicationCard = ({
   return (
     <div className="card space-y-4 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="font-display text-lg">{application.company || 'Unbenannt'}</h3>
-          <p className="text-sm text-muted">
+        <div className="min-w-0">
+          <h3 className="break-words font-display text-lg">{application.company || 'Unbenannt'}</h3>
+          <p className="break-words text-sm text-muted">
             {application.position || 'Position nicht angegeben'}
             {application.location ? ` · ${application.location}` : ''}
           </p>
@@ -105,8 +105,8 @@ export const ApplicationCard = ({
             Job-Link öffnen
           </a>
         )}
-        {application.source && <p>Quelle: {application.source}</p>}
-        {application.contact && <p>Kontakt: {application.contact}</p>}
+        {application.source && <p className="break-words">Quelle: {application.source}</p>}
+        {application.contact && <p className="break-words">Kontakt: {application.contact}</p>}
 
         {taskCount > 0 && (
           <div className="space-y-2">
@@ -116,7 +116,7 @@ export const ApplicationCard = ({
               {tasks.map((task) => (
                 <div key={task.id} className="card-soft space-y-2 px-3 py-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className={`text-sm font-medium ${task.done ? 'text-muted line-through' : 'text-text'}`}>
+                    <p className={`break-words text-sm font-medium ${task.done ? 'text-muted line-through' : 'text-text'}`}>
                       {task.title || 'Ohne Titel'}
                     </p>
                     <span className="chip">{task.done ? 'Erledigt' : 'Offen'}</span>
@@ -212,7 +212,7 @@ export const ApplicationCard = ({
       </div>
 
       {application.notes && (
-        <p className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-muted">{application.notes}</p>
+        <p className="break-words rounded-xl border border-border bg-surface-2 px-3 py-2 text-sm text-muted">{application.notes}</p>
       )}
 
       <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
