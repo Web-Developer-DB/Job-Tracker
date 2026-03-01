@@ -29,6 +29,57 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 - 🔐 Build-Audit bereinigt: Rollup auf gepatchte Version angehoben (Sicherheitswarnung entfernt).
 - 🧯 Fallback-Hinweis beim Backup-Export ergänzt: In Browsern ohne Speicherort-Auswahl wird Download weiter genutzt und transparent kommuniziert.
 
+### UX Mobile Report 📱
+
+#### Bedienpfade (Hauptflows)
+- Übersicht/Liste: bestehende Bewerbungen scannen, Status prüfen, Eintrag bearbeiten oder löschen.
+- Neu erstellen: neue Bewerbung erfassen, speichern, sofort in der Liste sichtbar.
+- Bearbeiten: bestehende Bewerbung öffnen, Felder ändern, speichern.
+- Löschen: Bewerbung entfernen (mit Sicherheitsabfrage).
+- Filter/Suche/Sortierung: Suchbegriff setzen, Status/Zeitraum/Sortierung anpassen, Trefferzahl prüfen.
+
+#### Gefundene Mobile UX-Reibungen
+- Primäre Aktionen (Neu, Suche, Filter) waren nicht dauerhaft in der Daumen-Zone erreichbar.
+- Erstellen/Filtern lag nur als lange Seitenbereiche vor; auf kleinen Screens war der Weg zu Aktionen unnötig lang.
+- Such-/Filterzustand war auf Mobile nicht sticky im Listenkontext und aktive Filter nicht kompakt sichtbar.
+- Feedback nach Speichern/Löschen war inkonsistent (nur punktuell, kein einheitliches Toast-Muster).
+- Touch-Targets für Inputs/Buttons waren teilweise knapp unter 44px (z. B. kompakte Number-Inputs).
+
+#### Umgesetzte Mobile UX-Patterns
+- Mobile Action Bar (`md:hidden`) mit Aktionen: `Neu`, `Suche`, `Filter`.
+- Bottom Sheet für mobile `Neu` und `Filter/Sortierung` inkl. Body Scroll Lock, Fokus auf Close/Initial-Focus, Escape-Schließen und scrollfähigem Sheet-Body.
+- Sticky Mobile-Suche im Listenbereich (`sticky top-2`) mit aktiven Filter-Chips und direktem Entfernen per `x`.
+- Einheitliches Toast-System mit Auto-Dismiss (ca. 4-5s) und Action-Button `Undo` für Löschvorgang.
+- Mobile Form-UX verbessert: min. 44px Touch-Targets, passende `type`/`inputMode` (`search`, `url`, `numeric`), Inline-Fehler für URL, Fokus auf erstes invalides Feld beim Submit.
+- Safe-Area-Unterstützung: Action Bar mit `env(safe-area-inset-bottom)` und Content-Padding unten für freie letzte Listeneinträge.
+
+#### Geprüfte Screens/Abschnitte
+- Header + Quick Actions
+- Dashboard
+- Formular (Neu/Bearbeiten)
+- Filter/Suche/Sortierung
+- Planer
+- Bewerbungsliste inkl. Leerzustände
+- Footer
+
+#### Scroll-Bug: Ursache und Fix
+- Hauptauslöser 1: Horizontales Driften durch visuelle Overflow-Effekte (absolut positionierte/geblaurte Shell-Dekoration) in Kombination mit fehlender globaler X-Clip-Absicherung.
+- Hauptauslöser 2: „Stufiges“ Scroll-Gefühl durch teure visuelle Effekte auf Mobile (breit eingesetztes Backdrop-Blur).
+Umgesetzte Fixes:
+- Globaler X-Overflow-Schutz auf `html`, `body`, `#root`, `.app-shell` mit `overflow-x: clip` und Fallback `overflow-x: hidden`.
+- Stabilität durch `min-width: 0` auf zentralen Container-Klassen (`.app-frame`, `.card`, `.card-soft`), `max-width: 100%` für `.app-frame` und zusätzliche `break-words` bei langen Texten.
+- Scroll-Interaktion über `touch-action: pan-y` auf Hauptscrollcontainer (`.app-shell`) verbessert.
+- Mobile Performance verbessert: Backdrop-Blur für zentrale Elemente auf kleinen Screens deaktiviert.
+- Animationslast reduziert: `layout`-Animation an List-Items entfernt.
+
+#### Smoke-Test Liste
+- `npm run build` läuft erfolgreich (Bundle erzeugt).
+- `npm run dev` lokal starten: fehlgeschlagen in dieser Umgebung wegen Node 18 (`Vite 7 braucht >=20.19/22.12`).
+- Mobile Device-Mode/echtes Gerät in dieser CLI-Umgebung nicht direkt reproduzierbar.
+- Voller `vitest`-Lauf blockiert in dieser Umgebung durch ESM/Worker-Fehler (`ERR_REQUIRE_ESM` in jsdom-Abhängigkeit).
+- Codepfade für Liste, Neu, Edit, Löschen/Undo, Filter-Sheet und Sticky-Suche wurden implementiert.
+- Keine bewusst eingeführten Änderungen an Datenmodell/API/Business-Regeln.
+
 ---
 
 ## [0.1.0] — 2026-02-06 🎉
