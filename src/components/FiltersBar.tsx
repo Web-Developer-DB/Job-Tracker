@@ -1,13 +1,16 @@
+import type { RefObject } from 'react';
 import type { ApplicationStatus, FilterRange, FilterSettings, SortOption } from '../types';
 import { Button, Input, Select } from './ui';
 
 interface FiltersBarProps {
   value: FilterSettings;
   onChange: (value: FilterSettings) => void;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
+  className?: string;
 }
 
 // Optionen für Status-Filter.
-const STATUS_OPTIONS: (ApplicationStatus | 'Alle')[] = [
+export const STATUS_OPTIONS: (ApplicationStatus | 'Alle')[] = [
   'Alle',
   'Entwurf',
   'Beworben',
@@ -18,7 +21,7 @@ const STATUS_OPTIONS: (ApplicationStatus | 'Alle')[] = [
 ];
 
 // Optionen für Zeiträume.
-const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
+export const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
   { value: 'all', label: 'Alle Daten' },
   { value: '7d', label: 'Letzte 7 Tage' },
   { value: '14d', label: 'Letzte 14 Tage' },
@@ -29,36 +32,66 @@ const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
 ];
 
 // Optionen für Sortierung.
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'createdAt', label: 'Erstellt am' },
   { value: 'status', label: 'Status' },
   { value: 'followUp', label: 'Follow-up-Datum' }
 ];
 
 // Filter- und Sortierleiste.
-export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
+export const FiltersBar = ({ value, onChange, searchInputRef, className }: FiltersBarProps) => {
   // Hilfsfunktion: Teil-Update zusammenführen.
   const update = (patch: Partial<FilterSettings>) => onChange({ ...value, ...patch });
+  const hasActiveFilters =
+    value.search.trim().length > 0 || value.status !== 'Alle' || value.range !== 'all' || value.sort !== 'createdAt';
+  const activeChips = [
+    value.search.trim().length > 0 ? { key: 'search', label: `Suche: ${value.search.trim()}` } : null,
+    value.status !== 'Alle' ? { key: 'status', label: `Status: ${value.status}` } : null,
+    value.range !== 'all'
+      ? { key: 'range', label: `Zeitraum: ${RANGE_OPTIONS.find((option) => option.value === value.range)?.label ?? value.range}` }
+      : null,
+    value.sort !== 'createdAt'
+      ? { key: 'sort', label: `Sortierung: ${SORT_OPTIONS.find((option) => option.value === value.sort)?.label ?? value.sort}` }
+      : null
+  ].filter(Boolean) as Array<{ key: 'search' | 'status' | 'range' | 'sort'; label: string }>;
+
+  const resetAll = () =>
+    onChange({
+      ...value,
+      search: '',
+      status: 'Alle',
+      range: 'all',
+      sort: 'createdAt'
+    });
+
+  const clearChip = (key: 'search' | 'status' | 'range' | 'sort') => {
+    if (key === 'search') {
+      update({ search: '' });
+      return;
+    }
+    if (key === 'status') {
+      update({ status: 'Alle' });
+      return;
+    }
+    if (key === 'range') {
+      update({ range: 'all' });
+      return;
+    }
+    update({ sort: 'createdAt' });
+  };
 
   return (
-    <div className="card space-y-4 p-5">
+    <div className={`card space-y-4 p-5 ${className ?? ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="font-display text-lg">Suche und Fokus</h2>
           <p className="text-sm text-muted">Filtere deine Pipeline nach Status, Zeitraum und Priorität.</p>
         </div>
-        {(value.search || value.status !== 'Alle' || value.range !== 'all') && (
+        {hasActiveFilters && (
           <Button
             type="button"
             variant="ghost"
-            onClick={() =>
-              onChange({
-                ...value,
-                search: '',
-                status: 'Alle',
-                range: 'all'
-              })
-            }
+            onClick={resetAll}
           >
             Filter zurücksetzen
           </Button>
@@ -69,6 +102,10 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
         <label className="field-label">
           Suche
           <Input
+            ref={searchInputRef}
+            type="search"
+            inputMode="search"
+            autoCapitalize="none"
             placeholder="Unternehmen oder Position"
             value={value.search}
             onChange={(event) => update({ search: event.target.value })}
@@ -117,6 +154,23 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
           </Select>
         </label>
       </div>
+
+      {activeChips.length > 0 && (
+        <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+          {activeChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              className="chip !normal-case !tracking-normal !text-xs !text-text"
+              onClick={() => clearChip(chip.key)}
+              aria-label={`Filter entfernen: ${chip.label}`}
+            >
+              <span>{chip.label}</span>
+              <span aria-hidden="true">×</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { ToastProvider } from './components/ui';
 import './index.css';
 
 // Einstiegspunkt: Root-Element aus der HTML-Datei holen.
@@ -10,7 +11,9 @@ if (!rootElement) throw new Error('Root element not found');
 // React-App in das Root-Element rendern.
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    <ToastProvider>
+      <App />
+    </ToastProvider>
   </React.StrictMode>
 );
 

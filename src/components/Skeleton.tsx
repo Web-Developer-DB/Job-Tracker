@@ -1,7 +1,7 @@
 // Einfacher Skeleton Loader während die App lädt.
 export const Skeleton = () => {
   return (
-    <div className="app-shell min-h-screen bg-base px-3 py-4 text-text sm:px-6 sm:py-7">
+    <div className="app-shell min-h-screen bg-base px-3 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] text-text sm:px-6 sm:py-7 sm:pb-[calc(7.2rem+env(safe-area-inset-bottom))] md:pb-7">
       <div className="app-frame mx-auto max-w-[1180px] space-y-5">
         <div className="h-10 w-64 animate-pulse rounded-xl bg-surface-2" />
         <div className="grid gap-4 md:grid-cols-4">

@@ -3,14 +3,16 @@ import { useReactToPrint } from 'react-to-print';
 import { ApplicationForm, type ApplicationFormValues } from './components/ApplicationForm';
 import { ApplicationList } from './components/ApplicationList';
 import { Dashboard } from './components/Dashboard';
-import { FiltersBar } from './components/FiltersBar';
+import { DesktopActionBar } from './components/desktop/DesktopActionBar';
+import { FiltersBar, RANGE_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS } from './components/FiltersBar';
+import { MobileActionBar } from './components/mobile/MobileActionBar';
 import { Planner } from './components/Planner';
 import { PrintView } from './components/PrintView';
 import { Skeleton } from './components/Skeleton';
-import { Badge, Button } from './components/ui';
+import { Badge, BottomSheet, Button, Input, Select, useToast } from './components/ui';
 import { downloadJsonFile, saveJsonWithPicker, supportsSaveFilePicker } from './services/fileSave';
 import { filterApplications, getDashboardStats, sortApplications } from './services/logic';
-import type { FilterSettings, Task } from './types';
+import type { ApplicationStatus, FilterRange, FilterSettings, SortOption, Task } from './types';
 import { useAppStore } from './store/appStore';
 
 // Browser-Event für die Installationsaufforderung (nicht in TS definiert).
@@ -28,6 +30,8 @@ const getMotivationLine = (count: number) => {
   if (count < 4) return 'Du bist im Flow. Ein zusätzlicher Eintrag verstärkt den Effekt.';
   return 'Starker Fortschritt. Halte die Dynamik mit Follow-ups hoch.';
 };
+
+type MobileFilterChipKey = 'search' | 'status' | 'range' | 'sort';
 
 // Hauptkomponente: verbindet Store, Logik und UI.
 const App = () => {
@@ -58,11 +62,19 @@ const App = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   // Speichert das Installations-Event, damit wir es auf Button-Klick auslösen können.
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [infoToast, setInfoToast] = useState<string | null>(null);
+  const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const { showToast } = useToast();
   // Referenz auf die versteckte File-Input für Restore.
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Referenz auf die Print-Komponente.
   const printRef = useRef<HTMLDivElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopCreateSectionRef = useRef<HTMLDivElement>(null);
+  const listSectionRef = useRef<HTMLElement>(null);
+  const filterStatusRef = useRef<HTMLSelectElement>(null);
+  const pendingDeleteRef = useRef<{ id: string; timeoutId: number } | null>(null);
 
   // Beim Start Daten aus dem Storage laden.
   useEffect(() => {
@@ -119,12 +131,49 @@ const App = () => {
     };
   }, [flushSave]);
 
-  // Kurze UI-Hinweise (z. B. bei Browser-Fallback) automatisch ausblenden.
   useEffect(() => {
-    if (!infoToast) return;
-    const timeout = window.setTimeout(() => setInfoToast(null), 4000);
-    return () => window.clearTimeout(timeout);
-  }, [infoToast]);
+    return () => {
+      const pending = pendingDeleteRef.current;
+      if (!pending) return;
+      window.clearTimeout(pending.timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const withModifier = event.metaKey || event.ctrlKey;
+      if (!withModifier) return;
+      if (event.defaultPrevented) return;
+
+      const key = event.key.toLowerCase();
+
+      if (key === 'k') {
+        event.preventDefault();
+        if (window.innerWidth < 768) {
+          listSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          window.setTimeout(() => mobileSearchInputRef.current?.focus(), 130);
+          return;
+        }
+        desktopSearchInputRef.current?.focus();
+      }
+
+      if (key === 'n') {
+        event.preventDefault();
+        if (window.innerWidth < 768) {
+          setIsCreateSheetOpen(true);
+          return;
+        }
+        desktopCreateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstFocusable = desktopCreateSectionRef.current?.querySelector<HTMLElement>(
+          'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+        );
+        firstFocusable?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Filter-Einstellungen aus dem Store auf ein Filter-Objekt mappen.
   const filters: FilterSettings = useMemo(
@@ -141,6 +190,36 @@ const App = () => {
     () => filters.status !== 'Alle' || filters.range !== 'all' || filters.search.trim().length > 0,
     [filters]
   );
+
+  const updateFilters = (patch: Partial<FilterSettings>) => setFilters({ ...filters, ...patch });
+
+  const clearFilters = () =>
+    setFilters({
+      ...filters,
+      status: 'Alle',
+      range: 'all',
+      search: ''
+    });
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: MobileFilterChipKey; label: string }> = [];
+    const trimmedSearch = filters.search.trim();
+    if (trimmedSearch) {
+      chips.push({ key: 'search', label: `Suche: ${trimmedSearch}` });
+    }
+    if (filters.status !== 'Alle') {
+      chips.push({ key: 'status', label: `Status: ${filters.status}` });
+    }
+    if (filters.range !== 'all') {
+      const rangeLabel = RANGE_OPTIONS.find((option) => option.value === filters.range)?.label ?? filters.range;
+      chips.push({ key: 'range', label: `Zeitraum: ${rangeLabel}` });
+    }
+    if (filters.sort !== 'createdAt') {
+      const sortLabel = SORT_OPTIONS.find((option) => option.value === filters.sort)?.label ?? filters.sort;
+      chips.push({ key: 'sort', label: `Sortierung: ${sortLabel}` });
+    }
+    return chips;
+  }, [filters]);
 
   // Bewerbungen nach Filter/Suche/Sortierung vorbereiten.
   const filteredApplications = useMemo(() => {
@@ -202,6 +281,39 @@ const App = () => {
     handleLibraryPrint?.();
   };
 
+  const handleFocusMobileSearch = () => {
+    listSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => mobileSearchInputRef.current?.focus(), 130);
+  };
+
+  const handleFocusDesktopSearch = () => {
+    desktopSearchInputRef.current?.focus();
+  };
+
+  const handleFocusDesktopCreate = () => {
+    desktopCreateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const firstFocusable = desktopCreateSectionRef.current?.querySelector<HTMLElement>(
+      'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+    );
+    firstFocusable?.focus();
+  };
+
+  const handleChipRemove = (key: MobileFilterChipKey) => {
+    if (key === 'search') {
+      updateFilters({ search: '' });
+      return;
+    }
+    if (key === 'status') {
+      updateFilters({ status: 'Alle' });
+      return;
+    }
+    if (key === 'range') {
+      updateFilters({ range: 'all' });
+      return;
+    }
+    updateFilters({ sort: 'createdAt' });
+  };
+
   // Installations-Button: zeigt Prompt oder eine kurze Anleitung.
   const handleInstall = async () => {
     if (installPrompt) {
@@ -220,18 +332,63 @@ const App = () => {
   // Neues Formular oben: erstellt immer einen neuen Datensatz.
   const handleCreate = (values: ApplicationFormValues) => {
     addApplication(values);
+    setIsCreateSheetOpen(false);
+    showToast({
+      title: 'Gespeichert',
+      description: 'Neue Bewerbung wurde hinzugefügt.',
+      variant: 'success'
+    });
   };
 
   // Bearbeiten in der Karte: aktualisiert den gewählten Datensatz.
   const handleUpdate = (id: string, values: ApplicationFormValues) => {
     updateApplication(id, values);
+    showToast({
+      title: 'Gespeichert',
+      description: 'Änderungen wurden übernommen.',
+      variant: 'success'
+    });
   };
 
   // Löschen mit Sicherheitsabfrage.
   const handleDelete = (id: string) => {
-    if (window.confirm('Diese Bewerbung wirklich löschen?')) {
-      deleteApplication(id);
+    if (!window.confirm('Diese Bewerbung wirklich löschen?')) {
+      return;
     }
+
+    const existingPending = pendingDeleteRef.current;
+    if (existingPending) {
+      window.clearTimeout(existingPending.timeoutId);
+      deleteApplication(existingPending.id);
+      pendingDeleteRef.current = null;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      deleteApplication(id);
+      pendingDeleteRef.current = null;
+    }, 4800);
+
+    pendingDeleteRef.current = { id, timeoutId };
+    showToast({
+      title: 'Löschen vorgemerkt',
+      description: 'Die Bewerbung wird in 5 Sekunden entfernt.',
+      variant: 'warning',
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const pending = pendingDeleteRef.current;
+          if (!pending || pending.id !== id) return;
+          window.clearTimeout(pending.timeoutId);
+          pendingDeleteRef.current = null;
+          showToast({
+            title: 'Löschen abgebrochen',
+            description: 'Die Bewerbung bleibt unverändert erhalten.',
+            variant: 'info'
+          });
+        }
+      }
+    });
   };
 
   // Backup-Datei als JSON speichern.
@@ -241,12 +398,23 @@ const App = () => {
 
     if (!supportsSaveFilePicker()) {
       downloadJsonFile(backup, fileName);
-      setInfoToast('Dein Browser unterstützt die Speicherort-Auswahl nicht, Datei wird heruntergeladen.');
+      showToast({
+        title: 'Backup heruntergeladen',
+        description: 'Dein Browser unterstützt keine direkte Speicherort-Auswahl.',
+        variant: 'info'
+      });
       return;
     }
 
     try {
-      await saveJsonWithPicker(backup, fileName);
+      const result = await saveJsonWithPicker(backup, fileName);
+      if (result === 'saved') {
+        showToast({
+          title: 'Backup gespeichert',
+          description: 'Die JSON-Datei wurde erfolgreich exportiert.',
+          variant: 'success'
+        });
+      }
     } catch (err) {
       console.error('Backup save failed', err);
       alert('Backup konnte nicht gespeichert werden.');
@@ -262,6 +430,11 @@ const App = () => {
       try {
         const parsed = JSON.parse(reader.result as string);
         importBackup(parsed);
+        showToast({
+          title: 'Backup importiert',
+          description: 'Daten und Einstellungen wurden wiederhergestellt.',
+          variant: 'success'
+        });
       } catch (err) {
         console.error('Backup restore failed', err);
         alert('Backup konnte nicht importiert werden.');
@@ -289,6 +462,11 @@ const App = () => {
     if (!third) return;
 
     await resetAll();
+    showToast({
+      title: 'Daten gelöscht',
+      description: 'Die App wurde auf den Ausgangszustand zurückgesetzt.',
+      variant: 'info'
+    });
   };
 
   // Solange der Store noch lädt, zeigen wir ein Skeleton.
@@ -297,17 +475,12 @@ const App = () => {
   }
 
   return (
-    <div className="app-shell min-h-screen bg-base px-3 py-4 text-text sm:px-6 sm:py-7">
+    <div className="app-shell min-h-screen bg-base px-3 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] text-text sm:px-6 sm:py-7 sm:pb-[calc(7.2rem+env(safe-area-inset-bottom))] md:pb-7">
       <div className="print-hidden">
-        {infoToast && (
-          <div className="fixed bottom-4 right-4 z-50 max-w-md rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text shadow-lg">
-            {infoToast}
-          </div>
-        )}
         <div className="app-frame mx-auto max-w-[1180px] space-y-6 sm:space-y-7">
           <header className="card p-4 md:p-5">
             <div className="flex flex-wrap items-start justify-between gap-5">
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <div className="flex flex-wrap gap-2">
                   <Badge>Offline-fähig</Badge>
                   <Badge>Lokal gespeichert</Badge>
@@ -335,7 +508,7 @@ const App = () => {
                 </div>
               </div>
 
-              <div className="flex max-w-[420px] flex-wrap items-center justify-end gap-2">
+              <div className="flex min-w-0 max-w-[420px] flex-wrap items-center justify-end gap-2">
                 {!isInstalled && (
                   <Button type="button" onClick={handleInstall} variant="secondary">
                     App installieren
@@ -383,9 +556,29 @@ const App = () => {
             onWeeklyGoalChange={setWeeklyGoal}
           />
 
-          <ApplicationForm onSubmit={handleCreate} resetAfterSubmit />
+          <section className="hidden gap-4 md:grid xl:grid-cols-[1.2fr_1fr] xl:items-start">
+            <div ref={desktopCreateSectionRef} className="min-w-0">
+              <ApplicationForm onSubmit={handleCreate} resetAfterSubmit />
+            </div>
 
-          <FiltersBar value={filters} onChange={setFilters} />
+            <div className="min-w-0 space-y-3 xl:sticky xl:top-3">
+              <div className="card-soft flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-text">Desktop Workflow</p>
+                  <p className="text-xs text-muted">Schneller Wechsel zwischen Neu, Suche und Ausgabe.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" onClick={handleFocusDesktopCreate}>
+                    Neue Bewerbung
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={handleFocusDesktopSearch}>
+                    Suche (Ctrl/Cmd+K)
+                  </Button>
+                </div>
+              </div>
+              <FiltersBar value={filters} onChange={setFilters} searchInputRef={desktopSearchInputRef} />
+            </div>
+          </section>
 
           <Planner
             tasks={tasks}
@@ -395,7 +588,51 @@ const App = () => {
             onDeleteTask={deleteTask}
           />
 
-          <section className="space-y-3">
+          <section ref={listSectionRef} className="space-y-3">
+            <DesktopActionBar
+              visibleCount={filteredApplications.length}
+              totalCount={applications.length}
+              hasActiveFilters={hasActiveFilters || filters.sort !== 'createdAt'}
+              onCreate={handleFocusDesktopCreate}
+              onFocusSearch={handleFocusDesktopSearch}
+              onClearFilters={clearFilters}
+              onPrint={handlePrint}
+            />
+
+            <div className="sticky top-2 z-30 md:hidden">
+              <div className="card-soft space-y-3 p-3">
+                <label className="field-label">
+                  Suche
+                  <Input
+                    ref={mobileSearchInputRef}
+                    type="search"
+                    inputMode="search"
+                    autoCapitalize="none"
+                    value={filters.search}
+                    onChange={(event) => updateFilters({ search: event.target.value })}
+                    placeholder="Unternehmen oder Position"
+                  />
+                </label>
+
+                {activeFilterChips.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {activeFilterChips.map((chip) => (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        className="chip !normal-case !tracking-normal !text-xs !text-text"
+                        onClick={() => handleChipRemove(chip.key)}
+                        aria-label={`Filter entfernen: ${chip.label}`}
+                      >
+                        <span>{chip.label}</span>
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-xl">Bewerbungen im Überblick</h2>
               <Badge>
@@ -414,17 +651,85 @@ const App = () => {
               onTaskDelete={deleteTask}
               totalCount={applications.length}
               hasActiveFilters={hasActiveFilters}
-              onClearFilters={() =>
-                setFilters({
-                  ...filters,
-                  status: 'Alle',
-                  range: 'all',
-                  search: ''
-                })
-              }
+              onClearFilters={clearFilters}
             />
           </section>
         </div>
+
+        <BottomSheet
+          open={isCreateSheetOpen}
+          onClose={() => setIsCreateSheetOpen(false)}
+          title="Neue Bewerbung"
+        >
+          <ApplicationForm
+            onSubmit={handleCreate}
+            onCancel={() => setIsCreateSheetOpen(false)}
+            embedded
+            resetAfterSubmit
+            submitLabel="Bewerbung speichern"
+          />
+        </BottomSheet>
+
+        <BottomSheet
+          open={isFilterSheetOpen}
+          onClose={() => setIsFilterSheetOpen(false)}
+          title="Filter und Sortierung"
+          initialFocusRef={filterStatusRef}
+        >
+          <div className="space-y-4">
+            <label className="field-label">
+              Status
+              <Select
+                ref={filterStatusRef}
+                value={filters.status}
+                onChange={(event) => updateFilters({ status: event.target.value as ApplicationStatus | 'Alle' })}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <label className="field-label">
+              Zeitraum
+              <Select
+                value={filters.range}
+                onChange={(event) => updateFilters({ range: event.target.value as FilterRange })}
+              >
+                {RANGE_OPTIONS.map((range) => (
+                  <option key={range.value} value={range.value}>
+                    {range.label}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <label className="field-label">
+              Sortieren
+              <Select
+                value={filters.sort}
+                onChange={(event) => updateFilters({ sort: event.target.value as SortOption })}
+              >
+                {SORT_OPTIONS.map((sort) => (
+                  <option key={sort.value} value={sort.value}>
+                    {sort.label}
+                  </option>
+                ))}
+              </Select>
+            </label>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+              <Button type="button" variant="ghost" onClick={clearFilters}>
+                Filter zurücksetzen
+              </Button>
+              <Button type="button" variant="primary" onClick={() => setIsFilterSheetOpen(false)}>
+                Anwenden
+              </Button>
+            </div>
+          </div>
+        </BottomSheet>
 
         <footer className="mx-auto mt-10 max-w-[1180px] border-t border-border pt-5 text-sm text-muted">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -441,6 +746,13 @@ const App = () => {
           </div>
         </footer>
       </div>
+
+      <MobileActionBar
+        onCreate={() => setIsCreateSheetOpen(true)}
+        onSearch={handleFocusMobileSearch}
+        onFilter={() => setIsFilterSheetOpen(true)}
+        hasActiveFilters={hasActiveFilters || filters.sort !== 'createdAt'}
+      />
 
       <div ref={printRef} className="print-only">
         <PrintView applications={filteredApplications} filters={filters} />

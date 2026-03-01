@@ -180,6 +180,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
                   Ziel pro Woche
                   <Input
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     max={30}
                     value={goalInput}
@@ -190,7 +191,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
                         event.currentTarget.blur();
                       }
                     }}
-                    className="h-8 w-20 px-2 py-1 text-sm"
+                    className="h-11 w-20 px-2 py-1 text-sm md:h-8"
                     aria-label="Wochenziel eingeben"
                   />
                 </label>

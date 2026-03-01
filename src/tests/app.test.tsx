@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AppState, JobApplication } from '../types';
+import { ToastProvider } from '../components/ui';
 
 const mockUseAppStore = vi.fn();
 const mockPrint = vi.fn();
@@ -19,6 +20,13 @@ vi.mock('react-to-print', () => ({
 }));
 
 import App from '../App';
+
+const renderApp = () =>
+  render(
+    <ToastProvider>
+      <App />
+    </ToastProvider>
+  );
 
 const createApplication = (patch: Partial<JobApplication> = {}): JobApplication => ({
   id: 'app-1',
@@ -86,7 +94,7 @@ describe('App', () => {
     store.isHydrated = false;
     mockUseAppStore.mockReturnValue(store);
 
-    const { container } = render(<App />);
+    const { container } = renderApp();
     expect(store.hydrate).toHaveBeenCalledTimes(1);
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
     expect(screen.queryByText(/job tracker/i)).not.toBeInTheDocument();
@@ -97,7 +105,7 @@ describe('App', () => {
     const store = createStoreSlice();
     mockUseAppStore.mockReturnValue(store);
 
-    render(<App />);
+    renderApp();
     expect(store.hydrate).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: /hellmodus/i }));
@@ -128,7 +136,7 @@ describe('App', () => {
 
     const nativePrintSpy = vi.spyOn(window, 'print').mockImplementation(() => undefined);
 
-    render(<App />);
+    renderApp();
     await user.click(screen.getByRole('button', { name: /pdf \/ drucken/i }));
 
     expect(nativePrintSpy).toHaveBeenCalledTimes(1);
@@ -143,7 +151,7 @@ describe('App', () => {
     store.settings.filterStatus = 'Beworben';
     mockUseAppStore.mockReturnValue(store);
 
-    render(<App />);
+    renderApp();
 
     expect(screen.getByText(/keine treffer für die aktuellen filter/i)).toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: /filter zurücksetzen/i })[0]);
@@ -167,7 +175,7 @@ describe('App', () => {
     const showSaveFilePicker = vi.fn(async () => ({ createWritable }));
     (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker = showSaveFilePicker;
 
-    render(<App />);
+    renderApp();
     await act(async () => {
       await user.click(screen.getByRole('button', { name: /sichern/i }));
       await Promise.resolve();
@@ -189,12 +197,12 @@ describe('App', () => {
     URL.createObjectURL = vi.fn(() => 'blob:backup-url');
     URL.revokeObjectURL = vi.fn();
 
-    render(<App />);
+    renderApp();
     fireEvent.click(screen.getByRole('button', { name: /sichern/i }));
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     expect(
-      await screen.findByText(/dein browser unterstützt die speicherort-auswahl nicht, datei wird heruntergeladen/i)
+      await screen.findByText(/backup heruntergeladen/i)
     ).toBeInTheDocument();
   });
 
@@ -211,7 +219,7 @@ describe('App', () => {
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
     const createObjectUrlSpy = vi.spyOn(URL, 'createObjectURL');
 
-    render(<App />);
+    renderApp();
     await user.click(screen.getByRole('button', { name: /sichern/i }));
 
     expect(showSaveFilePicker).toHaveBeenCalledTimes(1);

@@ -113,6 +113,9 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
 
       <form onSubmit={handleSubmit} className="grid gap-3 lg:grid-cols-[2fr_1.1fr_1fr_1fr_auto]">
         <Input
+          type="text"
+          inputMode="text"
+          autoCapitalize="sentences"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Neue Aufgabe …"
@@ -140,6 +143,7 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
         </Select>
 
         <Input
+          name="dueDate"
           type="date"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
