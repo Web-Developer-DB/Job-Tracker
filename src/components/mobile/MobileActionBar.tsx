@@ -13,7 +13,7 @@ export const MobileActionBar = ({ onCreate, onSearch, onFilter, hasActiveFilters
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden"
       aria-label="Mobile Hauptaktionen"
     >
-      <div className="mx-auto max-w-[1180px] px-3 pb-[calc(env(safe-area-inset-bottom)+0.7rem)] pt-2">
+      <div className="content-stage px-3 pb-[calc(env(safe-area-inset-bottom)+0.7rem)] pt-2">
         <div className="pointer-events-auto card-soft grid grid-cols-3 gap-2 border-border-strong px-2 py-2 shadow-lg">
           <Button
             type="button"

@@ -22,12 +22,17 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 - ⬆️ Toolchain und Abhängigkeiten auf aktuelle stabile Linien gehoben (u. a. React 19, Tailwind 4, TypeScript 5.9, Zustand 5, Framer Motion 12, Testing-Libs aktualisiert).
 - 🔧 Node-Engine auf LTS-Ziel angehoben: `>=22.12.0`.
 - 🧵 Tailwind-PostCSS-Integration auf v4-Muster migriert (`@tailwindcss/postcss`, CSS-Einstieg via `@import 'tailwindcss'` + `@config`).
+- 🖥️ Desktop-Layout deutlich fokussierter gemacht: zentrale Content-Breite begrenzt (`980px`) und auf großen Screens mit theme-abhängigen Seitenflächen ergänzt.
+- 🧭 Header-Interaktion neu geordnet: klare rechte „Schnellaktionen“-Spalte mit prominentem CTA „Neue Bewerbung“.
+- ♻️ Redundante Desktop-Steuerleiste entfernt; Suche/Filter sind jetzt kontextnah im Bereich „Bewerbungen im Überblick“ integriert.
 
 ### Behoben 🛠️
 - 🖨️ Druckdialog in installierter Chrome-PWA (Windows): Mehrfaches Drucken funktioniert wieder zuverlässig; der zweite Klick auf „PDF / Drucken“ öffnet erneut den Druckdialog.
 - 🖨️ `react-to-print`-Migration auf v3 API (`contentRef`) für Build-Kompatibilität.
 - 🔐 Build-Audit bereinigt: Rollup auf gepatchte Version angehoben (Sicherheitswarnung entfernt).
 - 🧯 Fallback-Hinweis beim Backup-Export ergänzt: In Browsern ohne Speicherort-Auswahl wird Download weiter genutzt und transparent kommuniziert.
+- 📏 KPI-Ausrichtung im Header korrigiert: Kennzahlen bleiben trotz Zeilenumbruch in Labels sauber auf einer Linie.
+- 🏷️ Follow-ups-Badge (`x offen`) ohne unschöne Umbrüche ausgerichtet (`nowrap` + spacing).
 
 ### UX Mobile Report 📱
 

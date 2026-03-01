@@ -4,6 +4,7 @@
 
 :root {
   color-scheme: dark;
+  --layout-content-max: 980px;
   --font-display: 'Space Grotesk', 'Manrope', system-ui, sans-serif;
   --font-body: 'Manrope', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
@@ -64,6 +65,16 @@
     radial-gradient(1300px 640px at -10% -25%, rgba(188, 208, 243, 0.7) 0%, transparent 60%),
     radial-gradient(980px 520px at 100% 0%, rgba(175, 205, 255, 0.45) 0%, transparent 60%),
     linear-gradient(180deg, #e7edf7 0%, #d7deea 58%, #ccd4e1 100%);
+  --stage-side-overlay:
+    linear-gradient(
+      90deg,
+      rgba(192, 204, 225, 0.58) 0%,
+      rgba(192, 204, 225, 0.2) 10%,
+      rgba(192, 204, 225, 0) 24%,
+      rgba(192, 204, 225, 0) 76%,
+      rgba(192, 204, 225, 0.2) 90%,
+      rgba(192, 204, 225, 0.58) 100%
+    );
   --shell-gradient: linear-gradient(160deg, rgba(255, 255, 255, 0.35) 0%, rgba(237, 243, 253, 0.2) 100%);
 }
 
@@ -113,6 +124,16 @@
     radial-gradient(1500px 760px at -12% -20%, rgba(84, 113, 170, 0.38) 0%, transparent 58%),
     radial-gradient(1100px 600px at 106% -6%, rgba(49, 83, 140, 0.42) 0%, transparent 60%),
     linear-gradient(180deg, #060910 0%, #080d17 45%, #060a13 100%);
+  --stage-side-overlay:
+    linear-gradient(
+      90deg,
+      rgba(5, 10, 20, 0.8) 0%,
+      rgba(9, 15, 28, 0.45) 10%,
+      rgba(9, 15, 28, 0) 24%,
+      rgba(9, 15, 28, 0) 76%,
+      rgba(9, 15, 28, 0.45) 90%,
+      rgba(5, 10, 20, 0.8) 100%
+    );
   --shell-gradient: linear-gradient(160deg, rgba(24, 29, 41, 0.88) 0%, rgba(17, 22, 34, 0.78) 100%);
 }
 
@@ -140,10 +161,21 @@ body,
 body {
   margin: 0;
   font-family: var(--font-body);
-  background: var(--hero-gradient);
+  background: var(--stage-side-overlay), var(--hero-gradient);
   color: var(--color-text);
   line-height: 1.5;
   letter-spacing: 0.004em;
+}
+
+@media (max-width: 1023px) {
+  body {
+    background: var(--hero-gradient);
+  }
+}
+
+.content-stage {
+  width: min(100%, var(--layout-content-max));
+  margin-inline: auto;
 }
 
 ::selection {
