@@ -3,8 +3,7 @@ import { useReactToPrint } from 'react-to-print';
 import { ApplicationForm, type ApplicationFormValues } from './components/ApplicationForm';
 import { ApplicationList } from './components/ApplicationList';
 import { Dashboard } from './components/Dashboard';
-import { DesktopActionBar } from './components/desktop/DesktopActionBar';
-import { FiltersBar, RANGE_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS } from './components/FiltersBar';
+import { RANGE_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS } from './components/FiltersBar';
 import { MobileActionBar } from './components/mobile/MobileActionBar';
 import { Planner } from './components/Planner';
 import { PrintView } from './components/PrintView';
@@ -71,7 +70,6 @@ const App = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
-  const desktopCreateSectionRef = useRef<HTMLDivElement>(null);
   const listSectionRef = useRef<HTMLElement>(null);
   const filterStatusRef = useRef<HTMLSelectElement>(null);
   const pendingDeleteRef = useRef<{ id: string; timeoutId: number } | null>(null);
@@ -159,15 +157,7 @@ const App = () => {
 
       if (key === 'n') {
         event.preventDefault();
-        if (window.innerWidth < 768) {
-          setIsCreateSheetOpen(true);
-          return;
-        }
-        desktopCreateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const firstFocusable = desktopCreateSectionRef.current?.querySelector<HTMLElement>(
-          'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
-        );
-        firstFocusable?.focus();
+        setIsCreateSheetOpen(true);
       }
     };
 
@@ -195,10 +185,10 @@ const App = () => {
 
   const clearFilters = () =>
     setFilters({
-      ...filters,
       status: 'Alle',
       range: 'all',
-      search: ''
+      search: '',
+      sort: 'createdAt'
     });
 
   const activeFilterChips = useMemo(() => {
@@ -290,13 +280,7 @@ const App = () => {
     desktopSearchInputRef.current?.focus();
   };
 
-  const handleFocusDesktopCreate = () => {
-    desktopCreateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    const firstFocusable = desktopCreateSectionRef.current?.querySelector<HTMLElement>(
-      'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
-    );
-    firstFocusable?.focus();
-  };
+  const handleFocusDesktopCreate = () => setIsCreateSheetOpen(true);
 
   const handleChipRemove = (key: MobileFilterChipKey) => {
     if (key === 'search') {
@@ -474,12 +458,14 @@ const App = () => {
     return <Skeleton />;
   }
 
+  const hasAnyFilterSignals = hasActiveFilters || filters.sort !== 'createdAt';
+
   return (
-    <div className="app-shell min-h-screen bg-base px-3 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] text-text sm:px-6 sm:py-7 sm:pb-[calc(7.2rem+env(safe-area-inset-bottom))] md:pb-7">
+    <div className="app-shell min-h-screen px-3 py-4 pb-[calc(7rem+env(safe-area-inset-bottom))] text-text sm:px-6 sm:py-7 sm:pb-[calc(7.2rem+env(safe-area-inset-bottom))] md:pb-7">
       <div className="print-hidden">
-        <div className="app-frame mx-auto max-w-[1180px] space-y-6 sm:space-y-7">
+        <div className="app-frame content-stage space-y-6 sm:space-y-7">
           <header className="card p-4 md:p-5">
-            <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
               <div className="min-w-0 space-y-4">
                 <div className="flex flex-wrap gap-2">
                   <Badge>Offline-fähig</Badge>
@@ -493,51 +479,77 @@ const App = () => {
                   <p className="mt-2 text-sm text-muted">{getMotivationLine(stats.thisWeek)}</p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <div className="card-soft px-3 py-2">
-                    <p className="text-xs text-muted">Bewerbungen diese Woche</p>
-                    <p className="mono text-lg font-semibold">{stats.thisWeek}</p>
+                  <div className="card-soft flex min-h-[76px] flex-col justify-between px-3 py-2">
+                    <p className="min-h-[2.2rem] text-xs leading-tight text-muted">Bewerbungen diese Woche</p>
+                    <p className="mono text-lg font-semibold leading-none">{stats.thisWeek}</p>
                   </div>
-                  <div className="card-soft px-3 py-2">
-                    <p className="text-xs text-muted">Fällige Follow-ups</p>
-                    <p className="mono text-lg font-semibold">{stats.followUpsDue.length}</p>
+                  <div className="card-soft flex min-h-[76px] flex-col justify-between px-3 py-2">
+                    <p className="min-h-[2.2rem] text-xs leading-tight text-muted">Fällige Follow-ups</p>
+                    <p className="mono text-lg font-semibold leading-none">{stats.followUpsDue.length}</p>
                   </div>
-                  <div className="card-soft px-3 py-2">
-                    <p className="text-xs text-muted">Aktive Aufgaben</p>
-                    <p className="mono text-lg font-semibold">{tasks.filter((task) => !task.done).length}</p>
+                  <div className="card-soft flex min-h-[76px] flex-col justify-between px-3 py-2">
+                    <p className="min-h-[2.2rem] text-xs leading-tight text-muted">Aktive Aufgaben</p>
+                    <p className="mono text-lg font-semibold leading-none">{tasks.filter((task) => !task.done).length}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="flex min-w-0 max-w-[420px] flex-wrap items-center justify-end gap-2">
-                {!isInstalled && (
-                  <Button type="button" onClick={handleInstall} variant="secondary">
-                    App installieren
+              <div className="w-full">
+                <div className="card-soft space-y-2 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Schnellaktionen</p>
+
+                  <Button
+                    type="button"
+                    onClick={handleFocusDesktopCreate}
+                    variant="primary"
+                    className="w-full !min-h-[46px]"
+                  >
+                    Neue Bewerbung
                   </Button>
-                )}
 
-                <Button
-                  type="button"
-                  onClick={() => setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
-                  variant="secondary"
-                >
-                  {settings.theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'}
-                </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      onClick={handlePrint}
+                      variant="secondary"
+                      className="!w-full"
+                    >
+                      PDF / Drucken
+                    </Button>
 
-                <Button type="button" onClick={handleBackup} variant="secondary">
-                  Sichern
-                </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
+                      variant="secondary"
+                      className="!w-full"
+                    >
+                      {settings.theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'}
+                    </Button>
 
-                <Button type="button" onClick={() => fileInputRef.current?.click()} variant="secondary">
-                  Wiederherstellen
-                </Button>
+                    <Button type="button" onClick={handleBackup} variant="secondary" className="!w-full">
+                      Sichern
+                    </Button>
 
-                <Button type="button" onClick={handlePrint} variant="primary">
-                  PDF / Drucken
-                </Button>
+                    <Button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="secondary"
+                      className="!w-full"
+                    >
+                      Wiederherstellen
+                    </Button>
 
-                <Button type="button" onClick={handleReset} variant="destructive">
-                  Alles löschen
-                </Button>
+                    {!isInstalled && (
+                      <Button type="button" onClick={handleInstall} variant="ghost" className="col-span-2 !w-full">
+                        App installieren
+                      </Button>
+                    )}
+                  </div>
+
+                  <Button type="button" onClick={handleReset} variant="destructive" className="w-full">
+                    Alles löschen
+                  </Button>
+                </div>
 
                 <input
                   ref={fileInputRef}
@@ -556,30 +568,6 @@ const App = () => {
             onWeeklyGoalChange={setWeeklyGoal}
           />
 
-          <section className="hidden gap-4 md:grid xl:grid-cols-[1.2fr_1fr] xl:items-start">
-            <div ref={desktopCreateSectionRef} className="min-w-0">
-              <ApplicationForm onSubmit={handleCreate} resetAfterSubmit />
-            </div>
-
-            <div className="min-w-0 space-y-3 xl:sticky xl:top-3">
-              <div className="card-soft flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold text-text">Desktop Workflow</p>
-                  <p className="text-xs text-muted">Schneller Wechsel zwischen Neu, Suche und Ausgabe.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="secondary" onClick={handleFocusDesktopCreate}>
-                    Neue Bewerbung
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={handleFocusDesktopSearch}>
-                    Suche (Ctrl/Cmd+K)
-                  </Button>
-                </div>
-              </div>
-              <FiltersBar value={filters} onChange={setFilters} searchInputRef={desktopSearchInputRef} />
-            </div>
-          </section>
-
           <Planner
             tasks={tasks}
             applications={applications}
@@ -589,15 +577,61 @@ const App = () => {
           />
 
           <section ref={listSectionRef} className="space-y-3">
-            <DesktopActionBar
-              visibleCount={filteredApplications.length}
-              totalCount={applications.length}
-              hasActiveFilters={hasActiveFilters || filters.sort !== 'createdAt'}
-              onCreate={handleFocusDesktopCreate}
-              onFocusSearch={handleFocusDesktopSearch}
-              onClearFilters={clearFilters}
-              onPrint={handlePrint}
-            />
+            <div className="hidden md:block">
+              <div className="card-soft space-y-3 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-display text-base text-text">Suche und Filter</p>
+                    <p className="text-xs text-muted">Fokussiert auf die Bewerbungsübersicht.</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="secondary" onClick={() => setIsFilterSheetOpen(true)}>
+                      Filter öffnen
+                    </Button>
+                    {hasAnyFilterSignals && (
+                      <Button type="button" variant="ghost" onClick={clearFilters}>
+                        Zurücksetzen
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+                  <label className="field-label">
+                    Suche
+                    <Input
+                      ref={desktopSearchInputRef}
+                      type="search"
+                      inputMode="search"
+                      autoCapitalize="none"
+                      value={filters.search}
+                      onChange={(event) => updateFilters({ search: event.target.value })}
+                      placeholder="Unternehmen oder Position (Ctrl/Cmd+K)"
+                    />
+                  </label>
+                  <Button type="button" variant="ghost" className="self-end" onClick={handleFocusDesktopSearch}>
+                    Suche fokussieren
+                  </Button>
+                </div>
+
+                {activeFilterChips.length > 0 && (
+                  <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+                    {activeFilterChips.map((chip) => (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        className="chip !normal-case !tracking-normal !text-xs !text-text"
+                        onClick={() => handleChipRemove(chip.key)}
+                        aria-label={`Filter entfernen: ${chip.label}`}
+                      >
+                        <span>{chip.label}</span>
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="sticky top-2 z-30 md:hidden">
               <div className="card-soft space-y-3 p-3">
@@ -731,7 +765,7 @@ const App = () => {
           </div>
         </BottomSheet>
 
-        <footer className="mx-auto mt-10 max-w-[1180px] border-t border-border pt-5 text-sm text-muted">
+        <footer className="content-stage mt-10 border-t border-border pt-5 text-sm text-muted">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>Lizenz: MIT</span>
             <span>Projekt von Dimitri B · Erstellt mit Unterstützung von Codex-Agenten</span>

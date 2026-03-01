@@ -253,7 +253,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
               <h3 className="font-display text-lg">Follow-ups</h3>
               <p className="text-sm text-muted">Priorität für deinen heutigen Fokus</p>
             </div>
-            <Badge>{stats.followUpsDue.length} offen</Badge>
+            <Badge className="whitespace-nowrap !px-3">{stats.followUpsDue.length}&nbsp;offen</Badge>
           </div>
 
           {stats.followUpsDue.length === 0 ? (
