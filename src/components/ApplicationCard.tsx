@@ -4,6 +4,7 @@ import type { ApplicationStatus, JobApplication, Task } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { formatDateDE } from '../services/export';
 import { ApplicationForm, type ApplicationFormValues } from './ApplicationForm';
+import { Button, Input, Select } from './ui';
 
 interface ApplicationCardProps {
   application: JobApplication;
@@ -133,18 +134,18 @@ export const ApplicationCard = ({
                   )}
 
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" className="btn btn-ghost" onClick={() => startTaskEdit(task)}>
+                    <Button type="button" variant="ghost" onClick={() => startTaskEdit(task)}>
                       Aufgabe ändern
-                    </button>
+                    </Button>
 
                     {task.done ? (
-                      <button type="button" className="btn btn-danger" onClick={() => onTaskDelete(task.id)}>
+                      <Button type="button" variant="destructive" onClick={() => onTaskDelete(task.id)}>
                         Aufgabe löschen
-                      </button>
+                      </Button>
                     ) : (
-                      <button type="button" className="btn btn-secondary" onClick={() => startTaskCompletion(task.id)}>
+                      <Button type="button" variant="secondary" onClick={() => startTaskCompletion(task.id)}>
                         Aufgabe erledigen
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -152,27 +153,26 @@ export const ApplicationCard = ({
                     <div className="space-y-2 border-t border-border pt-2">
                       <label className="field-label">
                         Aufgabe ändern
-                        <input
-                          className="input-field"
+                        <Input
                           value={taskTitleDraft}
                           onChange={(event) => setTaskTitleDraft(event.target.value)}
                           placeholder="Aufgaben-Titel"
                         />
                       </label>
                       <div className="flex gap-2">
-                        <button type="button" className="btn btn-primary" onClick={saveTaskEdit}>
+                        <Button type="button" variant="primary" onClick={saveTaskEdit}>
                           Speichern
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
-                          className="btn btn-ghost"
+                          variant="ghost"
                           onClick={() => {
                             setEditingTaskId(null);
                             setTaskTitleDraft('');
                           }}
                         >
                           Abbrechen
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -181,27 +181,26 @@ export const ApplicationCard = ({
                     <div className="space-y-2 border-t border-border pt-2">
                       <label className="field-label">
                         Notiz zur erledigten Aufgabe
-                        <input
-                          className="input-field"
+                        <Input
                           value={completionNoteDraft}
                           onChange={(event) => setCompletionNoteDraft(event.target.value)}
                           placeholder="z. B. Follow-up gesendet, Antwort kommt nächste Woche"
                         />
                       </label>
                       <div className="flex gap-2">
-                        <button type="button" className="btn btn-primary" onClick={saveTaskCompletion}>
+                        <Button type="button" variant="primary" onClick={saveTaskCompletion}>
                           Erledigt speichern
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
-                          className="btn btn-ghost"
+                          variant="ghost"
                           onClick={() => {
                             setCompletingTaskId(null);
                             setCompletionNoteDraft('');
                           }}
                         >
                           Abbrechen
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -219,8 +218,7 @@ export const ApplicationCard = ({
       <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
         <label className="field-label max-w-[220px]">
           Status ändern
-          <select
-            className="select-field"
+          <Select
             value={application.status}
             onChange={(event) => onStatusChange(event.target.value as ApplicationStatus)}
           >
@@ -229,16 +227,16 @@ export const ApplicationCard = ({
                 {status}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <div className="flex gap-2">
-          <button className="btn btn-secondary" type="button" onClick={() => setIsEditing((value) => !value)}>
+          <Button variant="secondary" type="button" onClick={() => setIsEditing((value) => !value)}>
             {isEditing ? 'Schließen' : 'Bearbeiten'}
-          </button>
-          <button className="btn btn-danger" type="button" onClick={onDelete}>
+          </Button>
+          <Button variant="destructive" type="button" onClick={onDelete}>
             Löschen
-          </button>
+          </Button>
         </div>
       </div>
 

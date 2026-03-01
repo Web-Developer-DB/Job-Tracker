@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { ApplicationStatus, JobApplication, Task } from '../types';
 import { ApplicationCard } from './ApplicationCard';
 import type { ApplicationFormValues } from './ApplicationForm';
+import { Button } from './ui';
 
 interface ApplicationListProps {
   applications: JobApplication[];
@@ -41,13 +42,14 @@ export const ApplicationList = ({
             Es sind {totalCount} Bewerbungen gespeichert, aber keine passt zu Suche, Status oder Zeitraum.
           </p>
           {onClearFilters && (
-            <button
+            <Button
               type="button"
               onClick={onClearFilters}
-              className="btn btn-secondary mt-5"
+              variant="secondary"
+              className="mt-5"
             >
               Filter zurücksetzen
-            </button>
+            </Button>
           )}
         </div>
       );

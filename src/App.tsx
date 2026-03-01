@@ -7,6 +7,7 @@ import { FiltersBar } from './components/FiltersBar';
 import { Planner } from './components/Planner';
 import { PrintView } from './components/PrintView';
 import { Skeleton } from './components/Skeleton';
+import { Badge, Button } from './components/ui';
 import { filterApplications, getDashboardStats, sortApplications } from './services/logic';
 import type { FilterSettings, Task } from './types';
 import { useAppStore } from './store/appStore';
@@ -282,19 +283,19 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-base px-4 py-6 text-text sm:px-6 sm:py-8">
+    <div className="app-shell min-h-screen bg-base px-3 py-4 text-text sm:px-6 sm:py-7">
       <div className="print-hidden">
-        <div className="mx-auto max-w-7xl space-y-8">
-          <header className="card p-5 md:p-6">
+        <div className="app-frame mx-auto max-w-[1180px] space-y-6 sm:space-y-7">
+          <header className="card p-4 md:p-5">
             <div className="flex flex-wrap items-start justify-between gap-5">
               <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
-                  <span className="chip">Offline-fähig</span>
-                  <span className="chip">Lokal gespeichert</span>
-                  <span className="chip">PWA bereit</span>
+                  <Badge>Offline-fähig</Badge>
+                  <Badge>Lokal gespeichert</Badge>
+                  <Badge>PWA bereit</Badge>
                 </div>
                 <div>
-                  <h1 className="font-display text-3xl md:text-4xl">
+                  <h1 className="font-display text-3xl md:text-[2.25rem]">
                     Job Tracker <span className="text-gradient">Momentum</span>
                   </h1>
                   <p className="mt-2 text-sm text-muted">{getMotivationLine(stats.thisWeek)}</p>
@@ -315,36 +316,36 @@ const App = () => {
                 </div>
               </div>
 
-              <div className="flex max-w-[380px] flex-wrap items-center justify-end gap-2">
+              <div className="flex max-w-[420px] flex-wrap items-center justify-end gap-2">
                 {!isInstalled && (
-                  <button type="button" onClick={handleInstall} className="btn btn-secondary">
+                  <Button type="button" onClick={handleInstall} variant="secondary">
                     App installieren
-                  </button>
+                  </Button>
                 )}
 
-                <button
+                <Button
                   type="button"
                   onClick={() => setTheme(settings.theme === 'dark' ? 'light' : 'dark')}
-                  className="btn btn-secondary"
+                  variant="secondary"
                 >
                   {settings.theme === 'dark' ? 'Hellmodus' : 'Dunkelmodus'}
-                </button>
+                </Button>
 
-                <button type="button" onClick={handleBackup} className="btn btn-secondary">
+                <Button type="button" onClick={handleBackup} variant="secondary">
                   Sichern
-                </button>
+                </Button>
 
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-secondary">
+                <Button type="button" onClick={() => fileInputRef.current?.click()} variant="secondary">
                   Wiederherstellen
-                </button>
+                </Button>
 
-                <button type="button" onClick={handlePrint} className="btn btn-primary">
+                <Button type="button" onClick={handlePrint} variant="primary">
                   PDF / Drucken
-                </button>
+                </Button>
 
-                <button type="button" onClick={handleReset} className="btn btn-danger">
+                <Button type="button" onClick={handleReset} variant="destructive">
                   Alles löschen
-                </button>
+                </Button>
 
                 <input
                   ref={fileInputRef}
@@ -378,9 +379,9 @@ const App = () => {
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-xl">Bewerbungen im Überblick</h2>
-              <span className="chip">
+              <Badge>
                 {filteredApplications.length} sichtbar · {applications.length} gesamt
-              </span>
+              </Badge>
             </div>
 
             <ApplicationList
@@ -406,7 +407,7 @@ const App = () => {
           </section>
         </div>
 
-        <footer className="mx-auto mt-12 max-w-7xl border-t border-border pt-6 text-sm text-muted">
+        <footer className="mx-auto mt-10 max-w-[1180px] border-t border-border pt-5 text-sm text-muted">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>Lizenz: MIT</span>
             <span>Projekt von Dimitri B · Erstellt mit Unterstützung von Codex-Agenten</span>

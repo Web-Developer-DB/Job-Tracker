@@ -4,8 +4,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Sora"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        body: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', '"Manrope"', 'system-ui', 'sans-serif'],
+        body: ['"Manrope"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
       },
       colors: {
@@ -24,16 +24,20 @@ module.exports = {
         danger: 'var(--color-danger)',
         success: 'var(--color-success)',
         warning: 'var(--color-warning)',
-        border: 'var(--color-border)'
+        border: 'var(--color-border)',
+        'border-strong': 'var(--color-border-strong)',
+        focus: 'var(--color-focus)'
       },
       boxShadow: {
         card: 'var(--shadow-card)',
-        soft: 'var(--shadow-soft)'
+        soft: 'var(--shadow-soft)',
+        glow: 'var(--shadow-glow)',
+        shell: 'var(--shadow-shell)'
       },
       borderRadius: {
-        xl: '1rem',
-        '2xl': '1.25rem',
-        '3xl': '1.5rem'
+        xl: 'var(--radius-card)',
+        '2xl': 'var(--radius-modal)',
+        '3xl': 'calc(var(--radius-modal) + 0.2rem)'
       }
     }
   },
