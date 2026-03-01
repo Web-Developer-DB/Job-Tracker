@@ -8,6 +8,7 @@ import { Planner } from './components/Planner';
 import { PrintView } from './components/PrintView';
 import { Skeleton } from './components/Skeleton';
 import { Badge, Button } from './components/ui';
+import { downloadJsonFile, saveJsonWithPicker, supportsSaveFilePicker } from './services/fileSave';
 import { filterApplications, getDashboardStats, sortApplications } from './services/logic';
 import type { FilterSettings, Task } from './types';
 import { useAppStore } from './store/appStore';
@@ -57,6 +58,7 @@ const App = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   // Speichert das Installations-Event, damit wir es auf Button-Klick auslösen können.
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [infoToast, setInfoToast] = useState<string | null>(null);
   // Referenz auf die versteckte File-Input für Restore.
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Referenz auf die Print-Komponente.
@@ -116,6 +118,13 @@ const App = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [flushSave]);
+
+  // Kurze UI-Hinweise (z. B. bei Browser-Fallback) automatisch ausblenden.
+  useEffect(() => {
+    if (!infoToast) return;
+    const timeout = window.setTimeout(() => setInfoToast(null), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [infoToast]);
 
   // Filter-Einstellungen aus dem Store auf ein Filter-Objekt mappen.
   const filters: FilterSettings = useMemo(
@@ -181,7 +190,7 @@ const App = () => {
 
   // Druckfunktion von react-to-print für Browser-Tabs.
   const handleLibraryPrint = useReactToPrint({
-    content: () => printRef.current
+    contentRef: printRef
   });
 
   // In installierten PWAs ist native window.print stabiler bei wiederholten Klicks.
@@ -226,17 +235,22 @@ const App = () => {
   };
 
   // Backup-Datei als JSON speichern.
-  const handleBackup = () => {
+  const handleBackup = async () => {
     const backup = exportBackup();
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `job-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    const fileName = `job-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+
+    if (!supportsSaveFilePicker()) {
+      downloadJsonFile(backup, fileName);
+      setInfoToast('Dein Browser unterstützt die Speicherort-Auswahl nicht, Datei wird heruntergeladen.');
+      return;
+    }
+
+    try {
+      await saveJsonWithPicker(backup, fileName);
+    } catch (err) {
+      console.error('Backup save failed', err);
+      alert('Backup konnte nicht gespeichert werden.');
+    }
   };
 
   // Backup-Datei laden und importieren.
@@ -285,6 +299,11 @@ const App = () => {
   return (
     <div className="app-shell min-h-screen bg-base px-3 py-4 text-text sm:px-6 sm:py-7">
       <div className="print-hidden">
+        {infoToast && (
+          <div className="fixed bottom-4 right-4 z-50 max-w-md rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text shadow-lg">
+            {infoToast}
+          </div>
+        )}
         <div className="app-frame mx-auto max-w-[1180px] space-y-6 sm:space-y-7">
           <header className="card p-4 md:p-5">
             <div className="flex flex-wrap items-start justify-between gap-5">

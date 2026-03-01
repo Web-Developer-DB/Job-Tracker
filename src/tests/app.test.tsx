@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AppState, JobApplication } from '../types';
 
 const mockUseAppStore = vi.fn();
 const mockPrint = vi.fn();
 const originalMatchMedia = window.matchMedia;
+const originalShowSaveFilePicker = (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker;
+const originalCreateObjectURL = URL.createObjectURL;
+const originalRevokeObjectURL = URL.revokeObjectURL;
 
 vi.mock('../store/appStore', () => ({
   useAppStore: () => mockUseAppStore()
@@ -72,6 +75,9 @@ describe('App', () => {
 
   afterEach(() => {
     window.matchMedia = originalMatchMedia;
+    (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker = originalShowSaveFilePicker;
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
     vi.restoreAllMocks();
   });
 
@@ -148,5 +154,68 @@ describe('App', () => {
       search: '',
       sort: 'createdAt'
     });
+  });
+
+  it('uses the file picker for backup export when supported', async () => {
+    const user = userEvent.setup();
+    const store = createStoreSlice();
+    mockUseAppStore.mockReturnValue(store);
+
+    const write = vi.fn<(payload: string) => Promise<void>>(async (_payload) => undefined);
+    const close = vi.fn(async () => undefined);
+    const createWritable = vi.fn(async () => ({ write, close }));
+    const showSaveFilePicker = vi.fn(async () => ({ createWritable }));
+    (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker = showSaveFilePicker;
+
+    render(<App />);
+    await act(async () => {
+      await user.click(screen.getByRole('button', { name: /sichern/i }));
+      await Promise.resolve();
+    });
+
+    expect(showSaveFilePicker).toHaveBeenCalledTimes(1);
+    expect(createWritable).toHaveBeenCalledTimes(1);
+    expect(write).toHaveBeenCalledTimes(1);
+    const exportedJson = write.mock.calls[0][0] as string;
+    expect(JSON.parse(exportedJson)).toEqual(store.exportBackup());
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to download and shows a notice when file picker is unsupported', async () => {
+    const store = createStoreSlice();
+    mockUseAppStore.mockReturnValue(store);
+
+    (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker = undefined;
+    URL.createObjectURL = vi.fn(() => 'blob:backup-url');
+    URL.revokeObjectURL = vi.fn();
+
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /sichern/i }));
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText(/dein browser unterstützt die speicherort-auswahl nicht, datei wird heruntergeladen/i)
+    ).toBeInTheDocument();
+  });
+
+  it('silently aborts backup export when the picker dialog is cancelled', async () => {
+    const user = userEvent.setup();
+    const store = createStoreSlice();
+    mockUseAppStore.mockReturnValue(store);
+
+    const showSaveFilePicker = vi.fn(async () => {
+      throw new DOMException('The user aborted a request.', 'AbortError');
+    });
+    (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker = showSaveFilePicker;
+
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => undefined);
+    const createObjectUrlSpy = vi.spyOn(URL, 'createObjectURL');
+
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /sichern/i }));
+
+    expect(showSaveFilePicker).toHaveBeenCalledTimes(1);
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(createObjectUrlSpy).not.toHaveBeenCalled();
   });
 });

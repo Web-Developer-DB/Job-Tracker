@@ -10,6 +10,8 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 ### Hinzugefügt ✨
 - 📘 Dokumentation des neuen Design-Systems: `DESIGN_SYSTEM.md`
 - 🧭 Separates UI-Änderungsprotokoll: `CHANGELOG_UI.md`
+- 💾 JSON-Backup speichert in unterstützten Browsern jetzt über Datei-Dialog (`showSaveFilePicker`) mit auswählbarem Speicherort und Dateinamen.
+- 📝 Neue Migrationsdokumentation für Toolchain-/Dependency-Upgrade: `UPGRADE_NOTES.md`
 
 ### Geändert 🔁
 - 🗂️ Reihenfolge im Hauptlayout angepasst: Die Komponente **Planer** steht jetzt direkt unter **Suche und Fokus**.
@@ -17,9 +19,15 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 - 🎨 Komplettes UI-Redesign im Glas-/Blur-Stil (angelehnt an Referenz-Screenshot): neue Farbpalette, Typo (Space Grotesk/Manrope), Radius- und Shadow-Skalen, konsistente Hover/Focus/Disabled-States.
 - 🧱 Zentrale UI-Primitives eingeführt (`Button`, `Input/Select/Textarea`, `Card/Panel/Badge`) und App-weit auf semantische Tokens + Tailwind-Mapping migriert.
 - 🪟 App-Shell mit frosted Hintergrund, klareren Abständen und Touch-freundlichen Controls; Light-/Dark-Theme harmonisiert.
+- ⬆️ Toolchain und Abhängigkeiten auf aktuelle stabile Linien gehoben (u. a. React 19, Tailwind 4, TypeScript 5.9, Zustand 5, Framer Motion 12, Testing-Libs aktualisiert).
+- 🔧 Node-Engine auf LTS-Ziel angehoben: `>=22.12.0`.
+- 🧵 Tailwind-PostCSS-Integration auf v4-Muster migriert (`@tailwindcss/postcss`, CSS-Einstieg via `@import 'tailwindcss'` + `@config`).
 
 ### Behoben 🛠️
 - 🖨️ Druckdialog in installierter Chrome-PWA (Windows): Mehrfaches Drucken funktioniert wieder zuverlässig; der zweite Klick auf „PDF / Drucken“ öffnet erneut den Druckdialog.
+- 🖨️ `react-to-print`-Migration auf v3 API (`contentRef`) für Build-Kompatibilität.
+- 🔐 Build-Audit bereinigt: Rollup auf gepatchte Version angehoben (Sicherheitswarnung entfernt).
+- 🧯 Fallback-Hinweis beim Backup-Export ergänzt: In Browsern ohne Speicherort-Auswahl wird Download weiter genutzt und transparent kommuniziert.
 
 ---
 
