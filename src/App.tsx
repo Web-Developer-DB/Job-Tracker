@@ -3,6 +3,7 @@ import { useReactToPrint } from 'react-to-print';
 import { ApplicationForm, type ApplicationFormValues } from './components/ApplicationForm';
 import { ApplicationList } from './components/ApplicationList';
 import { Dashboard } from './components/Dashboard';
+import { DesktopActionBar } from './components/desktop/DesktopActionBar';
 import { FiltersBar, RANGE_OPTIONS, SORT_OPTIONS, STATUS_OPTIONS } from './components/FiltersBar';
 import { MobileActionBar } from './components/mobile/MobileActionBar';
 import { Planner } from './components/Planner';
@@ -69,6 +70,8 @@ const App = () => {
   // Referenz auf die Print-Komponente.
   const printRef = useRef<HTMLDivElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopCreateSectionRef = useRef<HTMLDivElement>(null);
   const listSectionRef = useRef<HTMLElement>(null);
   const filterStatusRef = useRef<HTMLSelectElement>(null);
   const pendingDeleteRef = useRef<{ id: string; timeoutId: number } | null>(null);
@@ -134,6 +137,42 @@ const App = () => {
       if (!pending) return;
       window.clearTimeout(pending.timeoutId);
     };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const withModifier = event.metaKey || event.ctrlKey;
+      if (!withModifier) return;
+      if (event.defaultPrevented) return;
+
+      const key = event.key.toLowerCase();
+
+      if (key === 'k') {
+        event.preventDefault();
+        if (window.innerWidth < 768) {
+          listSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          window.setTimeout(() => mobileSearchInputRef.current?.focus(), 130);
+          return;
+        }
+        desktopSearchInputRef.current?.focus();
+      }
+
+      if (key === 'n') {
+        event.preventDefault();
+        if (window.innerWidth < 768) {
+          setIsCreateSheetOpen(true);
+          return;
+        }
+        desktopCreateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstFocusable = desktopCreateSectionRef.current?.querySelector<HTMLElement>(
+          'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+        );
+        firstFocusable?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Filter-Einstellungen aus dem Store auf ein Filter-Objekt mappen.
@@ -245,6 +284,18 @@ const App = () => {
   const handleFocusMobileSearch = () => {
     listSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     window.setTimeout(() => mobileSearchInputRef.current?.focus(), 130);
+  };
+
+  const handleFocusDesktopSearch = () => {
+    desktopSearchInputRef.current?.focus();
+  };
+
+  const handleFocusDesktopCreate = () => {
+    desktopCreateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const firstFocusable = desktopCreateSectionRef.current?.querySelector<HTMLElement>(
+      'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])'
+    );
+    firstFocusable?.focus();
   };
 
   const handleChipRemove = (key: MobileFilterChipKey) => {
@@ -505,13 +556,29 @@ const App = () => {
             onWeeklyGoalChange={setWeeklyGoal}
           />
 
-          <div className="hidden md:block">
-            <ApplicationForm onSubmit={handleCreate} resetAfterSubmit />
-          </div>
+          <section className="hidden gap-4 md:grid xl:grid-cols-[1.2fr_1fr] xl:items-start">
+            <div ref={desktopCreateSectionRef} className="min-w-0">
+              <ApplicationForm onSubmit={handleCreate} resetAfterSubmit />
+            </div>
 
-          <div className="hidden md:block">
-            <FiltersBar value={filters} onChange={setFilters} />
-          </div>
+            <div className="min-w-0 space-y-3 xl:sticky xl:top-3">
+              <div className="card-soft flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-text">Desktop Workflow</p>
+                  <p className="text-xs text-muted">Schneller Wechsel zwischen Neu, Suche und Ausgabe.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" onClick={handleFocusDesktopCreate}>
+                    Neue Bewerbung
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={handleFocusDesktopSearch}>
+                    Suche (Ctrl/Cmd+K)
+                  </Button>
+                </div>
+              </div>
+              <FiltersBar value={filters} onChange={setFilters} searchInputRef={desktopSearchInputRef} />
+            </div>
+          </section>
 
           <Planner
             tasks={tasks}
@@ -522,6 +589,16 @@ const App = () => {
           />
 
           <section ref={listSectionRef} className="space-y-3">
+            <DesktopActionBar
+              visibleCount={filteredApplications.length}
+              totalCount={applications.length}
+              hasActiveFilters={hasActiveFilters || filters.sort !== 'createdAt'}
+              onCreate={handleFocusDesktopCreate}
+              onFocusSearch={handleFocusDesktopSearch}
+              onClearFilters={clearFilters}
+              onPrint={handlePrint}
+            />
+
             <div className="sticky top-2 z-30 md:hidden">
               <div className="card-soft space-y-3 p-3">
                 <label className="field-label">
