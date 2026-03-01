@@ -7,7 +7,7 @@ interface FiltersBarProps {
 }
 
 // Optionen für Status-Filter.
-const STATUS_OPTIONS: (ApplicationStatus | 'Alle')[] = [
+export const STATUS_OPTIONS: (ApplicationStatus | 'Alle')[] = [
   'Alle',
   'Entwurf',
   'Beworben',
@@ -18,7 +18,7 @@ const STATUS_OPTIONS: (ApplicationStatus | 'Alle')[] = [
 ];
 
 // Optionen für Zeiträume.
-const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
+export const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
   { value: 'all', label: 'Alle Daten' },
   { value: '7d', label: 'Letzte 7 Tage' },
   { value: '14d', label: 'Letzte 14 Tage' },
@@ -29,7 +29,7 @@ const RANGE_OPTIONS: { value: FilterRange; label: string }[] = [
 ];
 
 // Optionen für Sortierung.
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'createdAt', label: 'Erstellt am' },
   { value: 'status', label: 'Status' },
   { value: 'followUp', label: 'Follow-up-Datum' }
@@ -69,6 +69,9 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
         <label className="field-label">
           Suche
           <Input
+            type="search"
+            inputMode="search"
+            autoCapitalize="none"
             placeholder="Unternehmen oder Position"
             value={value.search}
             onChange={(event) => update({ search: event.target.value })}

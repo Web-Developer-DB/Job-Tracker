@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { calculateFollowUpDate } from '../services/logic';
 import type { ApplicationStatus, JobApplication } from '../types';
 import { Badge, Button, Input, Select, Textarea } from './ui';
@@ -37,6 +37,15 @@ interface ApplicationFormProps {
 // Leerzeichen entfernen. Leere Strings werden zu `undefined`,
 // damit sie nicht als „echte“ Daten gespeichert werden.
 const normalize = (value: string): string | undefined => (value.trim() ? value.trim() : undefined);
+const isLikelyUrl = (value: string): boolean => {
+  if (!value.trim()) return true;
+  try {
+    const parsed = new URL(value.trim());
+    return Boolean(parsed.protocol && parsed.host);
+  } catch {
+    return false;
+  }
+};
 
 // Formular für neue Bewerbungen und zum Bearbeiten bestehender Bewerbungen.
 export const ApplicationForm = ({
@@ -61,9 +70,12 @@ export const ApplicationForm = ({
   const [stepMode, setStepMode] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const isEditing = Boolean(initial);
   const isFinalStep = activeStep === FORM_STEPS.length - 1;
+  const linkInvalid = showValidationErrors && !isLikelyUrl(link);
 
   const resetForm = () => {
     setCompany('');
@@ -76,6 +88,7 @@ export const ApplicationForm = ({
     setContact('');
     setNotes('');
     setActiveStep(0);
+    setShowValidationErrors(false);
   };
 
   const handleStatusChange = (nextStatus: ApplicationStatus) => {
@@ -105,6 +118,7 @@ export const ApplicationForm = ({
     setStepMode(false);
     setActiveStep(0);
     setShowSuccess(false);
+    setShowValidationErrors(false);
   }, [initial]);
 
   useEffect(() => {
@@ -118,6 +132,18 @@ export const ApplicationForm = ({
   // Formular absenden: Werte normalisieren und an den Parent zurückgeben.
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
+    setShowValidationErrors(true);
+    const form = event.currentTarget as HTMLFormElement;
+    if (!form.checkValidity()) {
+      const firstInvalid = form.querySelector<HTMLElement>(':invalid');
+      if (firstInvalid) {
+        firstInvalid.focus();
+        firstInvalid.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+      form.reportValidity();
+      return;
+    }
+
     onSubmit({
       company: normalize(company),
       position: normalize(position),
@@ -136,6 +162,8 @@ export const ApplicationForm = ({
 
     if (resetAfterSubmit && !initial) {
       resetForm();
+    } else {
+      setShowValidationErrors(false);
     }
   };
 
@@ -146,6 +174,9 @@ export const ApplicationForm = ({
           <label className="field-label">
             Unternehmen <span className="field-note">empfohlen</span>
             <Input
+              name="company"
+              inputMode="text"
+              autoComplete="organization"
               value={company}
               onChange={(event) => setCompany(event.target.value)}
               placeholder="z. B. Nordlicht GmbH"
@@ -155,6 +186,9 @@ export const ApplicationForm = ({
           <label className="field-label">
             Position <span className="field-note">empfohlen</span>
             <Input
+              name="position"
+              inputMode="text"
+              autoComplete="organization-title"
               value={position}
               onChange={(event) => setPosition(event.target.value)}
               placeholder="z. B. Frontend Engineer"
@@ -164,6 +198,9 @@ export const ApplicationForm = ({
           <label className="field-label">
             Ort / remote
             <Input
+              name="location"
+              inputMode="text"
+              autoComplete="address-level2"
               value={location}
               onChange={(event) => setLocation(event.target.value)}
               placeholder="Berlin oder remote"
@@ -173,6 +210,8 @@ export const ApplicationForm = ({
           <label className="field-label">
             Quelle
             <Input
+              name="source"
+              inputMode="text"
               value={source}
               onChange={(event) => setSource(event.target.value)}
               placeholder="LinkedIn, Empfehlung, Karriereportal"
@@ -188,6 +227,7 @@ export const ApplicationForm = ({
           <label className="field-label">
             Status
             <Select
+              name="status"
               value={status}
               onChange={(event) => handleStatusChange(event.target.value as ApplicationStatus)}
             >
@@ -202,6 +242,7 @@ export const ApplicationForm = ({
           <label className="field-label">
             Follow-up-Datum
             <Input
+              name="followUpDate"
               type="date"
               value={followUpDate}
               onChange={(event) => setFollowUpDate(event.target.value)}
@@ -212,6 +253,9 @@ export const ApplicationForm = ({
           <label className="field-label md:col-span-2">
             Kontaktperson
             <Input
+              name="contact"
+              inputMode="text"
+              autoComplete="name"
               value={contact}
               onChange={(event) => setContact(event.target.value)}
               placeholder="Name, Rolle, E-Mail oder Telefon"
@@ -226,15 +270,30 @@ export const ApplicationForm = ({
         <label className="field-label">
           Link
           <Input
+            name="link"
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="url"
+            invalid={linkInvalid}
+            aria-invalid={linkInvalid || undefined}
+            aria-describedby={linkInvalid ? 'application-link-error-step' : undefined}
             value={link}
             onChange={(event) => setLink(event.target.value)}
             placeholder="https://..."
           />
+          {linkInvalid && (
+            <span id="application-link-error-step" className="text-xs text-danger" role="alert">
+              Bitte gib eine valide URL mit Protokoll an (z. B. https://example.com).
+            </span>
+          )}
         </label>
 
         <label className="field-label">
           Notizen
           <Textarea
+            name="notes"
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Wichtige Infos, nächste Schritte, Feedback nach Gespräch …"
@@ -250,6 +309,9 @@ export const ApplicationForm = ({
         <label className="field-label">
           Unternehmen <span className="field-note">empfohlen</span>
           <Input
+            name="company"
+            inputMode="text"
+            autoComplete="organization"
             value={company}
             onChange={(event) => setCompany(event.target.value)}
             placeholder="z. B. Nordlicht GmbH"
@@ -259,6 +321,9 @@ export const ApplicationForm = ({
         <label className="field-label">
           Position <span className="field-note">empfohlen</span>
           <Input
+            name="position"
+            inputMode="text"
+            autoComplete="organization-title"
             value={position}
             onChange={(event) => setPosition(event.target.value)}
             placeholder="z. B. Frontend Engineer"
@@ -268,6 +333,9 @@ export const ApplicationForm = ({
         <label className="field-label">
           Ort / remote
           <Input
+            name="location"
+            inputMode="text"
+            autoComplete="address-level2"
             value={location}
             onChange={(event) => setLocation(event.target.value)}
             placeholder="Berlin oder remote"
@@ -277,15 +345,31 @@ export const ApplicationForm = ({
         <label className="field-label">
           Link
           <Input
+            name="link"
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="url"
+            invalid={linkInvalid}
+            aria-invalid={linkInvalid || undefined}
+            aria-describedby={linkInvalid ? 'application-link-error-all' : undefined}
             value={link}
             onChange={(event) => setLink(event.target.value)}
             placeholder="https://..."
           />
+          {linkInvalid && (
+            <span id="application-link-error-all" className="text-xs text-danger" role="alert">
+              Bitte gib eine valide URL mit Protokoll an (z. B. https://example.com).
+            </span>
+          )}
         </label>
 
         <label className="field-label">
           Quelle
           <Input
+            name="source"
+            inputMode="text"
             value={source}
             onChange={(event) => setSource(event.target.value)}
             placeholder="LinkedIn, Empfehlung, Karriereportal"
@@ -295,6 +379,7 @@ export const ApplicationForm = ({
         <label className="field-label">
           Status
           <Select
+            name="status"
             value={status}
             onChange={(event) => handleStatusChange(event.target.value as ApplicationStatus)}
           >
@@ -309,6 +394,7 @@ export const ApplicationForm = ({
         <label className="field-label">
           Follow-up-Datum
           <Input
+            name="followUpDate"
             type="date"
             value={followUpDate}
             onChange={(event) => setFollowUpDate(event.target.value)}
@@ -318,6 +404,9 @@ export const ApplicationForm = ({
         <label className="field-label">
           Kontaktperson
           <Input
+            name="contact"
+            inputMode="text"
+            autoComplete="name"
             value={contact}
             onChange={(event) => setContact(event.target.value)}
             placeholder="Name, Rolle, E-Mail oder Telefon"
@@ -328,6 +417,7 @@ export const ApplicationForm = ({
       <label className="field-label">
         Notizen
         <Textarea
+          name="notes"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Wichtige Infos, nächste Schritte, Feedback nach Gespräch …"
@@ -337,7 +427,11 @@ export const ApplicationForm = ({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={embedded ? 'space-y-4' : 'card space-y-4 p-6'}>
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className={embedded ? 'space-y-4' : 'card space-y-4 p-6'}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-display text-xl">{initial ? 'Bewerbung bearbeiten' : 'Neue Bewerbung'}</h2>
