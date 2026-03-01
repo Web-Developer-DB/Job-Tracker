@@ -1,0 +1,382 @@
+# Express.js + MongoDB Hybrid-Auth Build-Prompt (Google OAuth + Magic Link) fuer CodeAgent
+
+Du implementierst ein produktionsreifes Backend fuer die bestehende Job-Tracker-App.
+Das Frontend existiert bereits (React + Vite + Zustand + lokale IndexedDB/localStorage-Persistenz).
+Deine Aufgabe ist es, Cloud-Synchronisation mit minimalen Frontend-Aenderungen umzusetzen und zwei einfache Login-Wege zu unterstuetzen:
+
+1. Google OAuth
+2. E-Mail Magic Link (passwortlos)
+
+## 1) Ziele
+
+1. Ein `Express.js`-Backend mit `MongoDB` fuer geraeteuebergreifende Synchronisation bauen.
+2. Login fuer Nutzer einfach halten und Passwort-Registrierung vermeiden.
+3. Beide Auth-Provider per Feature-Flags steuerbar machen.
+4. Frontend-Aenderungen minimal halten und Local-First-Modus bewahren.
+5. Kompatibilitaet fuer Windows, Linux, iPhone und Android (Browser/PWA) sicherstellen.
+
+## 2) Randbedingungen
+
+1. Frontend-Architektur nicht neu schreiben.
+2. Login nicht fuer lokale Nutzung erzwingen.
+3. Cloud-Daten in v1 als ein kompletter State-Snapshot pro Nutzer speichern.
+4. Backend in TypeScript umsetzen.
+5. Strikte Sicherheitsgrundlage umsetzen.
+
+## 3) Bestehender State-Vertrag (darf nicht geaendert werden)
+
+Cloud-Payloads exakt in dieser Form:
+
+```ts
+interface AppState {
+  applications: JobApplication[];
+  tasks: Task[];
+  settings: Settings;
+}
+```
+
+Diese Struktur in v1 nicht aendern.
+
+## 4) Server-Struktur
+
+Backend-Workspace anlegen:
+
+```text
+/server
+  /src
+    /config
+    /db
+    /middlewares
+    /models
+    /routes
+    /services
+    /templates
+    /types
+    app.ts
+    index.ts
+```
+
+Empfohlener Stack:
+
+1. `express`
+2. `mongoose`
+3. `express-session` + `connect-mongo`
+4. `passport` + `passport-google-oauth20`
+5. `nodemailer`
+6. `zod`
+7. `cors`, `helmet`, `express-rate-limit`, `compression`
+8. `pino`/`pino-http`
+9. `vitest` + `supertest`
+
+## 5) Feature-Flag-Strategie (verpflichtend)
+
+Runtime-Schalter via Env implementieren:
+
+```env
+AUTH_GOOGLE_ENABLED=true
+AUTH_MAGIC_LINK_ENABLED=true
+AUTH_DEFAULT_PROVIDER=google
+```
+
+Verhalten:
+
+1. Ist ein Provider deaktiviert, muessen die zugehoerigen Routen `404` (oder `403` mit klarer Fehlermeldung) liefern.
+2. Discovery-Endpoint einfuehren:
+   - `GET /api/v1/auth/providers`
+   - liefert aktivierte Provider und Default-Provider:
+   ```json
+   {
+     "providers": { "google": true, "magicLink": true },
+     "defaultProvider": "google"
+   }
+   ```
+
+Empfohlener Standard fuer dieses Projekt:
+
+1. Beide Provider aktiviert lassen.
+2. `AUTH_DEFAULT_PROVIDER=google` setzen.
+3. Wenn Google temporaer nicht verfuegbar ist, muss das Frontend automatisch Magic Link als Fallback anbieten.
+
+## 6) Datenmodelle
+
+### 6.1 User
+
+`users`-Collection:
+
+```ts
+{
+  _id: ObjectId,
+  email: string,                // normalisiert in lower-case
+  name?: string,
+  avatarUrl?: string,
+  providers: {
+    google?: {
+      providerId: string,       // Google sub
+      linkedAt: Date
+    },
+    magicLink?: {
+      linkedAt: Date
+    }
+  },
+  createdAt: Date,
+  updatedAt: Date,
+  lastLoginAt?: Date
+}
+```
+
+Indizes:
+
+1. unique `{ email: 1 }`
+2. sparse unique `{ "providers.google.providerId": 1 }`
+
+### 6.2 UserState
+
+`user_states`-Collection:
+
+```ts
+{
+  _id: ObjectId,
+  userId: ObjectId,              // unique
+  state: AppState,
+  version: number,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+Indizes:
+
+1. unique `{ userId: 1 }`
+2. `{ updatedAt: -1 }`
+
+### 6.3 Magic-Link-Token
+
+`auth_tokens`-Collection:
+
+```ts
+{
+  _id: ObjectId,
+  email: string,                 // normalisiert in lower-case
+  tokenHash: string,             // sha256(rawToken)
+  purpose: "login",
+  expiresAt: Date,
+  usedAt?: Date,
+  createdAt: Date,
+  ip?: string,
+  userAgent?: string
+}
+```
+
+Indizes:
+
+1. TTL `{ expiresAt: 1 }` mit `expireAfterSeconds: 0`
+2. unique `{ tokenHash: 1 }`
+3. `{ email: 1, createdAt: -1 }`
+
+## 7) Auth-Flows
+
+### 7.1 Google OAuth Flow
+
+1. Frontend ruft `GET /api/v1/auth/google` auf.
+2. Callback `GET /api/v1/auth/google/callback`:
+   - User per E-Mail/ProviderId upserten
+   - Session erstellen
+   - zur Frontend-Success-URL weiterleiten
+
+### 7.2 Magic-Link Flow
+
+1. Frontend sendet E-Mail an `POST /api/v1/auth/magic-link/request`.
+2. Backend erzeugt One-Time-Token, speichert nur Token-Hash, versendet E-Mail.
+3. Nutzer klickt `GET /api/v1/auth/magic-link/verify?token=...`.
+4. Backend verifiziert Token, markiert Token als genutzt, erstellt Session, leitet weiter.
+
+Gemeinsames Verhalten:
+
+1. Session serverseitig in MongoDB speichern.
+2. `GET /api/v1/auth/me` liefert normalisierte Auth-Response.
+3. `POST /api/v1/auth/logout` zerstoert Session und loescht Cookie.
+
+## 8) Verbindliche API-Endpunkte
+
+Basis-Pfad: `/api/v1`
+
+### Oeffentlich
+
+1. `GET /health`
+2. `GET /auth/providers`
+
+### Auth
+
+1. `GET /auth/google`
+2. `GET /auth/google/callback`
+3. `POST /auth/magic-link/request`
+4. `GET /auth/magic-link/verify`
+5. `GET /auth/me`
+6. `POST /auth/logout`
+
+### Sync
+
+1. `GET /state` (Auth erforderlich)
+2. `PUT /state` (Auth erforderlich)
+   - Body:
+   ```json
+   { "state": { "...AppState..." }, "baseVersion": 7 }
+   ```
+   - Bei Mismatch:
+   ```json
+   {
+     "error": "VERSION_CONFLICT",
+     "remote": { "state": { "...AppState..." }, "version": 8, "updatedAt": "..." }
+   }
+   ```
+3. `DELETE /state` (Auth erforderlich)
+
+## 9) Sicherheitsanforderungen
+
+1. `helmet` aktivieren.
+2. Strikte CORS-Allowlist aus Env (`APP_ORIGIN`).
+3. Session-Cookie:
+   - `httpOnly: true`
+   - `secure: true` in Produktion
+   - `sameSite` konfigurierbar
+4. CSRF-Schutz fuer Session-Write-Routen (Origin-Check oder Double-Submit-Token).
+5. `zod`-Validierung fuer alle Write-Payloads.
+6. Niemals Client-User-Identitaet vertrauen; immer aus Session ableiten.
+7. Niemals rohe Magic-Link-Tokens loggen.
+8. Kryptografisch sichere Tokens (`crypto.randomBytes`) erzeugen und nur Hashes speichern.
+9. Rate-Limits fuer:
+   - OAuth-Start-Endpunkte
+   - magic-link request pro IP + pro E-Mail
+   - verify pro IP
+
+## 10) Konfliktstrategie (v1)
+
+1. Optimistic Concurrency mit `baseVersion`.
+2. Bei `409 VERSION_CONFLICT`:
+   - remote laden
+   - `updatedAt` vergleichen
+   - juengster Zeitstempel gewinnt in v1
+   - lokalen Backup-Snapshot vor Ueberschreiben sichern
+
+## 11) Frontend-Aenderungen (minimal)
+
+Nur ergaenzen:
+
+1. `authClient`:
+   - `getProviders()`
+   - `loginWithGoogle()`
+   - `requestMagicLink(email)`
+   - `getMe()`
+   - `logout()`
+2. `cloudSyncClient`:
+   - `pullState()`
+   - `pushState(state, baseVersion)`
+   - `deleteCloudState()`
+3. Kleine Auth-UI:
+   - Google-Button anzeigen, falls `providers.google === true`
+   - Magic-Link-Form anzeigen, falls `providers.magicLink === true`
+4. Bestehende lokale Storage/Hydrate-Logik beibehalten; nur optionale Cloud-Sync bei Auth ergaenzen.
+
+## 12) Umgebungsvariablen (.env.example)
+
+```env
+NODE_ENV=development
+PORT=4000
+MONGODB_URI=mongodb+srv://...
+SESSION_SECRET=replace_me
+
+APP_ORIGIN=http://localhost:5173
+API_BASE_URL=http://localhost:4000
+AUTH_SUCCESS_REDIRECT=http://localhost:5173/auth/callback
+AUTH_FAILURE_REDIRECT=http://localhost:5173/auth/error
+
+COOKIE_NAME=jt.sid
+COOKIE_SAME_SITE=lax
+COOKIE_DOMAIN=
+
+AUTH_GOOGLE_ENABLED=true
+AUTH_MAGIC_LINK_ENABLED=true
+AUTH_DEFAULT_PROVIDER=google
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=http://localhost:4000/api/v1/auth/google/callback
+
+MAGIC_LINK_TTL_MINUTES=15
+MAGIC_LINK_RESEND_SECONDS=60
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM="Job Tracker <no-reply@example.com>"
+```
+
+### 12.1 Deployment-Profile (verpflichtend)
+
+Profil A (empfohlen): Same-Site-Deployment unter einer Basis-Domain
+
+1. Beispiel:
+   - frontend: `https://app.example.com`
+   - backend: `https://api.example.com`
+2. Nutzen:
+   - `COOKIE_SAME_SITE=lax`
+   - `COOKIE_DOMAIN=.example.com`
+   - `APP_ORIGIN=https://app.example.com`
+3. Frontend-Requests muessen Credentials senden (`fetch(..., { credentials: "include" })`).
+
+Profil B: Cross-Site-Deployment auf unterschiedlichen Domains
+
+1. Beispiel:
+   - frontend: `https://my-app.vercel.app`
+   - backend: `https://my-api.onrender.com`
+2. Nutzen:
+   - `COOKIE_SAME_SITE=none`
+   - `secure=true` (verpflichtend)
+   - `COOKIE_DOMAIN` leer lassen, falls nicht explizit benoetigt
+3. CORS darf nur den exakten Frontend-Origin + Credentials erlauben.
+
+Beide Profile in `/server/README` dokumentieren und in Staging validieren.
+
+## 13) E-Mail-Anforderungen (fuer Magic Link)
+
+1. `EmailService`-Abstraktion und SMTP-Implementierung bereitstellen.
+2. Plain-Text- und HTML-Templates versenden.
+3. In lokalem Dev ohne SMTP-Konfiguration sichere Preview-URL in Logs ausgeben.
+4. Request-Endpoint muss immer generische Success-Message liefern (keine Account-Enumeration).
+
+## 14) Lieferumfang-Checkliste
+
+1. Backend-Implementierung in `/server` mit typisierten Routen.
+2. Integrationstests fuer:
+   - provider discovery
+   - Google-Route-Gating per Feature-Flag
+   - magic-link request + verify flow
+   - auth me/logout
+   - state get/put/delete + version conflict
+3. README-Updates:
+   - Local Setup
+   - Google OAuth Setup
+   - SMTP Setup
+   - Deployment-Hinweise
+4. API-Vertragsdokument in `/server/API.md`.
+5. Nur minimale Frontend-Integration.
+
+## 15) Akzeptanzkriterien
+
+1. Nutzer kann sich mit mindestens einem aktivierten Provider anmelden.
+2. Das Deaktivieren eines Providers darf den anderen nicht brechen.
+3. Derselbe Nutzer sieht auf einem zweiten Geraet den synchronisierten Stand.
+4. Local-only-Nutzung funktioniert im ausgeloggten Zustand.
+5. Kein Passwort-Registrierungs-UI ist erforderlich.
+6. Sicherheits-Middleware und Rate-Limits sind aktiv.
+7. Auth funktioniert in mindestens einem konfigurierten Deployment-Profil (A oder B), inklusive cookie-basierter Session-Persistenz.
+
+## 16) Nicht-Ziele fuer v1
+
+1. Keine Passwort-Auth.
+2. Keine geteilten Team-Workspaces.
+3. Keine erweiterte Merge-UI.
+4. Keine Social-Provider ausser Google.
+
+Setze dies exakt um: pragmatisch, sauber und mit minimaler Stoerung der bestehenden Frontend-Logik.

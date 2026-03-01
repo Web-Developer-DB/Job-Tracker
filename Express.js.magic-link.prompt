@@ -1,0 +1,362 @@
+# Express.js + MongoDB Build-Prompt (Magic Link, ohne Passwort) fuer CodeAgent
+
+Du implementierst ein produktionsreifes Backend fuer die bestehende Job-Tracker-App.
+Das Frontend existiert bereits (React + Vite + Zustand + lokale IndexedDB/localStorage-Persistenz).
+Deine Aufgabe ist es, Cloud-Synchronisation mit minimalen Frontend-Aenderungen und passwortloser Anmeldung zu ergaenzen.
+
+## 1) Ziele
+
+1. Ein `Express.js`-Backend mit `MongoDB` fuer geraeteuebergreifende Synchronisation bauen.
+2. Passwortlose Authentifizierung per E-Mail Magic Link nutzen.
+3. Frontend-Aenderungen minimal halten und Local-First-Verhalten bewahren.
+4. Windows, Linux, iPhone und Android per Browser/PWA unterstuetzen.
+
+## 2) Randbedingungen
+
+1. Frontend-Architektur nicht neu schreiben.
+2. Keine Passwort-Erstellung fuer Nutzer verlangen.
+3. Schema einfach halten: ein kompletter State-Snapshot pro Nutzer.
+4. Backend in TypeScript umsetzen.
+5. Sicherheitsgrundlagen und Missbrauchsschutz verpflichtend umsetzen.
+
+## 3) Bestehender State-Vertrag (muss unveraendert bleiben)
+
+Cloud-State exakt in dieser Form speichern:
+
+```ts
+interface AppState {
+  applications: JobApplication[];
+  tasks: Task[];
+  settings: Settings;
+}
+```
+
+Struktur in v1 nicht aendern.
+
+## 4) Vorgeschlagene Server-Struktur
+
+Backend-Workspace anlegen:
+
+```text
+/server
+  /src
+    /config
+    /db
+    /middlewares
+    /models
+    /routes
+    /services
+    /templates
+    /types
+    app.ts
+    index.ts
+```
+
+Empfohlener Stack:
+
+1. `express`
+2. `mongoose`
+3. `express-session` + `connect-mongo`
+4. `zod`
+5. `nodemailer` (SMTP-Provider)
+6. `cors`, `helmet`, `express-rate-limit`, `compression`
+7. `pino`/`pino-http`
+8. `vitest` + `supertest`
+
+## 5) Datenmodelle
+
+### 5.1 User
+
+`users`:
+
+```ts
+{
+  _id: ObjectId,
+  email: string,          // normalisiert in lower-case
+  name?: string,
+  createdAt: Date,
+  updatedAt: Date,
+  lastLoginAt?: Date
+}
+```
+
+Indizes:
+
+1. unique `{ email: 1 }`
+
+### 5.2 UserState
+
+`user_states`:
+
+```ts
+{
+  _id: ObjectId,
+  userId: ObjectId,       // unique
+  state: AppState,
+  version: number,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+Indizes:
+
+1. unique `{ userId: 1 }`
+
+### 5.3 Magic-Link-Token
+
+`auth_tokens`:
+
+```ts
+{
+  _id: ObjectId,
+  email: string,                // normalisiert
+  tokenHash: string,            // sha256(rawToken)
+  purpose: "login",
+  expiresAt: Date,
+  usedAt?: Date,
+  createdAt: Date,
+  ip?: string,
+  userAgent?: string
+}
+```
+
+Indizes:
+
+1. `{ expiresAt: 1 }` mit TTL (`expireAfterSeconds: 0`)
+2. `{ email: 1, createdAt: -1 }`
+3. `{ tokenHash: 1 }` unique
+
+## 6) Auth-Design (Magic Link)
+
+Keine Passwoerter. Flow:
+
+1. Nutzer gibt im Frontend seine E-Mail ein.
+2. Frontend ruft `POST /api/v1/auth/magic-link/request` auf.
+3. Backend erstellt One-Time-Token, speichert nur den Hash und sendet den Link.
+4. Nutzer klickt Link -> Backend verifiziert Token, markiert es als genutzt und erstellt Session.
+5. Backend leitet zur Success-URL des Frontends weiter.
+
+Wichtiges Verhalten:
+
+1. Request-Endpoint antwortet immer generisch (kein User-Enumeration-Leak).
+2. Token ist single-use und kurzlebig (Standard 15 Minuten).
+3. Resend-Cooldown und Rate-Limits pro IP + pro E-Mail einbauen.
+
+## 7) Verbindliche API-Endpunkte
+
+Basis-Pfad: `/api/v1`
+
+### Oeffentlich
+
+1. `GET /health`
+   - `{ ok: true, uptime: number, env: string }`
+
+### Auth
+
+1. `POST /auth/magic-link/request`
+   - Body:
+   ```json
+   { "email": "user@example.com" }
+   ```
+   - Immer antworten mit:
+   ```json
+   { "ok": true, "message": "If the email is valid, a sign-in link was sent." }
+   ```
+
+2. `GET /auth/magic-link/verify`
+   - Query: `token`, optional `redirect`
+   - Verifiziert Token, loggt User ein, leitet zur Success-URL weiter.
+
+3. `GET /auth/me`
+   - Eingeloggt:
+   ```json
+   {
+     "authenticated": true,
+     "user": { "id": "...", "email": "..." }
+   }
+   ```
+   - Ausgeloggt:
+   ```json
+   { "authenticated": false, "user": null }
+   ```
+
+4. `POST /auth/logout`
+   - Zerstoert Session und loescht Cookie.
+
+### Sync
+
+1. `GET /state`
+   - Auth erforderlich.
+   - Return:
+   ```json
+   { "state": { "...AppState..." }, "version": 3, "updatedAt": "..." }
+   ```
+   - Falls leer:
+   ```json
+   { "state": null, "version": 0, "updatedAt": null }
+   ```
+
+2. `PUT /state`
+   - Auth erforderlich.
+   - Body:
+   ```json
+   { "state": { "...AppState..." }, "baseVersion": 3 }
+   ```
+   - Bei Versions-Match speichern und Version erhoehen.
+   - Bei Mismatch `409 VERSION_CONFLICT` mit Remote-Payload.
+
+3. `DELETE /state`
+   - Auth erforderlich.
+   - Loescht den Cloud-State des Nutzers.
+
+## 8) Sicherheitsanforderungen
+
+1. `helmet` aktivieren.
+2. Strikte CORS-Allowlist aus Env (`APP_ORIGIN`).
+3. Session-Cookie:
+   - `httpOnly: true`
+   - `secure: true` in Produktion
+   - `sameSite` konfigurierbar (`lax` als Standard)
+4. CSRF-Schutz fuer Session-Routen:
+   - Double-Submit-Token oder Origin-Check auf Write-Routen.
+5. Alle Request-Bodies mit `zod` validieren.
+6. Niemals rohe Tokens in Logs ausgeben.
+7. Kryptografisch sichere Token erstellen (`crypto.randomBytes`).
+8. Token nur gehasht speichern (`sha256`).
+9. Rate-Limits einbauen:
+   - magic-link request: pro IP + pro E-Mail
+   - verify endpoint: pro IP
+
+## 9) Anforderungen an E-Mail-Versand
+
+1. `EmailService`-Abstraktion einfuehren.
+2. SMTP-Sender mit `nodemailer` implementieren.
+3. Plain-Text + HTML-Template bereitstellen.
+4. Link-Format:
+   - `${API_BASE_URL}/api/v1/auth/magic-link/verify?token=...`
+5. Lokaler Dev-Modus:
+   - Falls SMTP-Env fehlt, Preview-Link sicher in Server-Konsole ausgeben.
+
+## 10) Frontend-Aenderungen (minimal)
+
+Nur ergaenzen:
+
+1. `authClient`-Service:
+   - `requestMagicLink(email)`
+   - `getMe()`
+   - `logout()`
+2. Optionales Auth-Screen/Modal mit einem E-Mail-Feld.
+3. Header-Button:
+   - "Sign in" wenn ausgeloggt
+   - "Logout" wenn eingeloggt
+4. `cloudSyncClient`-Service:
+   - `pullState()`
+   - `pushState(state, baseVersion)`
+   - `deleteCloudState()`
+5. Store-Integration:
+   - Lokale Persistenz beibehalten.
+   - Bei Auth startup pull + debounced cloud push.
+
+## 11) Konfliktstrategie (v1)
+
+1. Optimistic Concurrency mit `baseVersion`.
+2. Bei `409 VERSION_CONFLICT`:
+   - remote ziehen
+   - juengsten Stand per `updatedAt` waehlen
+   - lokalen Backup-Snapshot vor Ueberschreiben sichern
+
+## 12) Umgebungsvariablen (.env.example)
+
+```env
+NODE_ENV=development
+PORT=4000
+MONGODB_URI=mongodb+srv://...
+SESSION_SECRET=replace_me
+APP_ORIGIN=http://localhost:5173
+API_BASE_URL=http://localhost:4000
+AUTH_SUCCESS_REDIRECT=http://localhost:5173/auth/callback
+AUTH_FAILURE_REDIRECT=http://localhost:5173/auth/error
+COOKIE_NAME=jt.sid
+COOKIE_SAME_SITE=lax
+COOKIE_DOMAIN=
+
+MAGIC_LINK_TTL_MINUTES=15
+MAGIC_LINK_RESEND_SECONDS=60
+
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM="Job Tracker <no-reply@example.com>"
+```
+
+### 12.1 Deployment-Profile (verpflichtend)
+
+Profil A (empfohlen): Same-Site-Deployment unter einer Basis-Domain
+
+1. Beispiel:
+   - frontend: `https://app.example.com`
+   - backend: `https://api.example.com`
+2. Nutzen:
+   - `COOKIE_SAME_SITE=lax`
+   - `COOKIE_DOMAIN=.example.com`
+   - `APP_ORIGIN=https://app.example.com`
+3. Frontend-Requests muessen Credentials senden (`fetch(..., { credentials: "include" })`).
+
+Profil B: Cross-Site-Deployment auf unterschiedlichen Domains
+
+1. Beispiel:
+   - frontend: `https://my-app.vercel.app`
+   - backend: `https://my-api.onrender.com`
+2. Nutzen:
+   - `COOKIE_SAME_SITE=none`
+   - `secure=true` (verpflichtend)
+   - `COOKIE_DOMAIN` leer lassen, falls nicht explizit benoetigt
+3. CORS darf nur den exakten Frontend-Origin + Credentials erlauben.
+
+Beide Profile in `/server/README` dokumentieren und in Staging validieren.
+
+## 13) Regeln gegen Missbrauch
+
+1. Niemals offenlegen, ob eine E-Mail existiert.
+2. Cooldown pro E-Mail (z. B. 60 Sekunden).
+3. Request-Limit pro IP (z. B. 10 pro 15 Minuten).
+4. Harte Token-Ablaufzeit (standardmaessig 15 Minuten).
+5. Token darf genau einmal verwendet werden.
+
+## 14) Lieferumfang-Checkliste
+
+1. Typisierte Backend-Implementierung in `/server`.
+2. Integrationstests fuer:
+   - magic-link request Verhalten
+   - verify Login-Flow
+   - auth me/logout
+   - state get/put/delete
+   - conflict 409
+3. `README`-Updates:
+   - Local Setup
+   - SMTP Setup
+   - Produktionshinweise
+4. API-Vertragsdokument in `/server/API.md`.
+5. Nur minimale Frontend-Integration.
+
+## 15) Akzeptanzkriterien
+
+1. Nutzer meldet sich ohne Passwort per E-Mail-Link an.
+2. Derselbe Nutzer sieht den synchronisierten Stand auf einem zweiten Geraet.
+3. Local-only-Modus funktioniert weiter ohne Login.
+4. State-Payload-Struktur bleibt unveraendert.
+5. Sicherheits-Middleware und Rate-Limits sind aktiv.
+6. Geforderte Endpunkte sind implementiert und getestet.
+7. Auth funktioniert in mindestens einem konfigurierten Deployment-Profil (A oder B), inklusive cookie-basierter Session-Persistenz.
+
+## 16) Nicht-Ziele fuer v1
+
+1. Keine Social-Login-Provider.
+2. Keine Passwort-Auth.
+3. Keine geteilten Multi-User-Workspaces.
+4. Keine erweiterte Merge-UI.
+
+Setze dies exakt um: pragmatisch, sauber und mit minimaler Stoerung der bestehenden Frontend-Logik.
