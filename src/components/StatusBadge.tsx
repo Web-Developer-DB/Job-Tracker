@@ -2,12 +2,12 @@ import type { ApplicationStatus } from '../types';
 
 // Jede Status-Art bekommt eine feste Farbe, damit sie überall gleich aussieht.
 const STATUS_COLORS: Record<ApplicationStatus, string> = {
-  Entwurf: '#94a3b8',
-  Beworben: '#2563eb',
-  Interview: '#0ea5a4',
-  Angebot: '#16a34a',
-  Abgelehnt: '#dc2626',
-  Zurückgezogen: '#64748b'
+  Entwurf: '#93a4c2',
+  Beworben: '#5aa0ff',
+  Interview: '#7ac7f5',
+  Angebot: '#6fdc8f',
+  Abgelehnt: '#ff7272',
+  Zurückgezogen: '#8b95a9'
 };
 
 // Hilfsfunktion: aus einer Hex-Farbe eine RGBA-Farbe mit Transparenz bauen.
@@ -25,7 +25,7 @@ export const StatusBadge = ({ status }: { status: ApplicationStatus }) => {
   const color = STATUS_COLORS[status];
   return (
     <span
-      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-wide"
+      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-wide shadow-soft backdrop-blur-sm"
       style={{
         color,
         borderColor: hexToRgba(color, 0.38),

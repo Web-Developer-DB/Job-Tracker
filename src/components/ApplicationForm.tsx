@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { calculateFollowUpDate } from '../services/logic';
 import type { ApplicationStatus, JobApplication } from '../types';
+import { Badge, Button, Input, Select, Textarea } from './ui';
 
 // Erlaubte Status-Werte für das Auswahlfeld.
 const STATUSES: ApplicationStatus[] = ['Entwurf', 'Beworben', 'Interview', 'Angebot', 'Abgelehnt', 'Zurückgezogen'];
@@ -144,8 +145,7 @@ export const ApplicationForm = ({
         <div className="grid gap-4 md:grid-cols-2">
           <label className="field-label">
             Unternehmen <span className="field-note">empfohlen</span>
-            <input
-              className="input-field"
+            <Input
               value={company}
               onChange={(event) => setCompany(event.target.value)}
               placeholder="z. B. Nordlicht GmbH"
@@ -154,8 +154,7 @@ export const ApplicationForm = ({
 
           <label className="field-label">
             Position <span className="field-note">empfohlen</span>
-            <input
-              className="input-field"
+            <Input
               value={position}
               onChange={(event) => setPosition(event.target.value)}
               placeholder="z. B. Frontend Engineer"
@@ -164,8 +163,7 @@ export const ApplicationForm = ({
 
           <label className="field-label">
             Ort / remote
-            <input
-              className="input-field"
+            <Input
               value={location}
               onChange={(event) => setLocation(event.target.value)}
               placeholder="Berlin oder remote"
@@ -174,8 +172,7 @@ export const ApplicationForm = ({
 
           <label className="field-label">
             Quelle
-            <input
-              className="input-field"
+            <Input
               value={source}
               onChange={(event) => setSource(event.target.value)}
               placeholder="LinkedIn, Empfehlung, Karriereportal"
@@ -190,8 +187,7 @@ export const ApplicationForm = ({
         <div className="grid gap-4 md:grid-cols-2">
           <label className="field-label">
             Status
-            <select
-              className="select-field"
+            <Select
               value={status}
               onChange={(event) => handleStatusChange(event.target.value as ApplicationStatus)}
             >
@@ -200,14 +196,13 @@ export const ApplicationForm = ({
                   {item}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
 
           <label className="field-label">
             Follow-up-Datum
-            <input
+            <Input
               type="date"
-              className="input-field"
               value={followUpDate}
               onChange={(event) => setFollowUpDate(event.target.value)}
             />
@@ -216,8 +211,7 @@ export const ApplicationForm = ({
 
           <label className="field-label md:col-span-2">
             Kontaktperson
-            <input
-              className="input-field"
+            <Input
               value={contact}
               onChange={(event) => setContact(event.target.value)}
               placeholder="Name, Rolle, E-Mail oder Telefon"
@@ -231,8 +225,7 @@ export const ApplicationForm = ({
       <div className="grid gap-4">
         <label className="field-label">
           Link
-          <input
-            className="input-field"
+          <Input
             value={link}
             onChange={(event) => setLink(event.target.value)}
             placeholder="https://..."
@@ -241,8 +234,7 @@ export const ApplicationForm = ({
 
         <label className="field-label">
           Notizen
-          <textarea
-            className="textarea-field"
+          <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Wichtige Infos, nächste Schritte, Feedback nach Gespräch …"
@@ -257,8 +249,7 @@ export const ApplicationForm = ({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="field-label">
           Unternehmen <span className="field-note">empfohlen</span>
-          <input
-            className="input-field"
+          <Input
             value={company}
             onChange={(event) => setCompany(event.target.value)}
             placeholder="z. B. Nordlicht GmbH"
@@ -267,8 +258,7 @@ export const ApplicationForm = ({
 
         <label className="field-label">
           Position <span className="field-note">empfohlen</span>
-          <input
-            className="input-field"
+          <Input
             value={position}
             onChange={(event) => setPosition(event.target.value)}
             placeholder="z. B. Frontend Engineer"
@@ -277,8 +267,7 @@ export const ApplicationForm = ({
 
         <label className="field-label">
           Ort / remote
-          <input
-            className="input-field"
+          <Input
             value={location}
             onChange={(event) => setLocation(event.target.value)}
             placeholder="Berlin oder remote"
@@ -287,8 +276,7 @@ export const ApplicationForm = ({
 
         <label className="field-label">
           Link
-          <input
-            className="input-field"
+          <Input
             value={link}
             onChange={(event) => setLink(event.target.value)}
             placeholder="https://..."
@@ -297,8 +285,7 @@ export const ApplicationForm = ({
 
         <label className="field-label">
           Quelle
-          <input
-            className="input-field"
+          <Input
             value={source}
             onChange={(event) => setSource(event.target.value)}
             placeholder="LinkedIn, Empfehlung, Karriereportal"
@@ -307,8 +294,7 @@ export const ApplicationForm = ({
 
         <label className="field-label">
           Status
-          <select
-            className="select-field"
+          <Select
             value={status}
             onChange={(event) => handleStatusChange(event.target.value as ApplicationStatus)}
           >
@@ -317,14 +303,13 @@ export const ApplicationForm = ({
                 {item}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="field-label">
           Follow-up-Datum
-          <input
+          <Input
             type="date"
-            className="input-field"
             value={followUpDate}
             onChange={(event) => setFollowUpDate(event.target.value)}
           />
@@ -332,8 +317,7 @@ export const ApplicationForm = ({
 
         <label className="field-label">
           Kontaktperson
-          <input
-            className="input-field"
+          <Input
             value={contact}
             onChange={(event) => setContact(event.target.value)}
             placeholder="Name, Rolle, E-Mail oder Telefon"
@@ -343,8 +327,7 @@ export const ApplicationForm = ({
 
       <label className="field-label">
         Notizen
-        <textarea
-          className="textarea-field"
+        <Textarea
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Wichtige Infos, nächste Schritte, Feedback nach Gespräch …"
@@ -367,26 +350,26 @@ export const ApplicationForm = ({
 
         <div className="flex flex-wrap items-center gap-2">
           {!embedded && !isEditing && (
-            <button
+            <Button
               type="button"
               onClick={() => {
                 setStepMode((value) => !value);
                 setActiveStep(0);
               }}
-              className="btn btn-ghost"
+              variant="ghost"
             >
               {stepMode ? 'Komplette Ansicht' : 'Schrittmodus'}
-            </button>
+            </Button>
           )}
 
           {onCancel && (
-            <button
+            <Button
               type="button"
               onClick={onCancel}
-              className="btn btn-secondary"
+              variant="secondary"
             >
               Abbrechen
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -394,7 +377,7 @@ export const ApplicationForm = ({
       {showSuccess && !embedded && (
         <div className="card-soft flex items-center justify-between gap-3 px-4 py-3" role="status">
           <p className="text-sm text-text">Gespeichert. Starker Schritt nach vorne.</p>
-          <span className="chip">Nächster Fokus: Follow-up setzen</span>
+          <Badge>Nächster Fokus: Follow-up setzen</Badge>
         </div>
       )}
 
@@ -423,21 +406,21 @@ export const ApplicationForm = ({
             <span className="text-xs text-muted">Keine Pflichtfelder – du kannst jederzeit speichern.</span>
             <div className="flex gap-2">
               {activeStep > 0 && (
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveStep((value) => value - 1)}>
+                <Button type="button" variant="secondary" onClick={() => setActiveStep((value) => value - 1)}>
                   Zurück
-                </button>
+                </Button>
               )}
 
               {!isFinalStep && (
-                <button type="button" className="btn btn-secondary" onClick={() => setActiveStep((value) => value + 1)}>
+                <Button type="button" variant="secondary" onClick={() => setActiveStep((value) => value + 1)}>
                   Weiter
-                </button>
+                </Button>
               )}
 
               {isFinalStep && (
-                <button type="submit" className="btn btn-primary">
+                <Button type="submit" variant="primary">
                   {submitLabel}
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -447,12 +430,12 @@ export const ApplicationForm = ({
           {renderAllFields()}
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <Button
               type="submit"
-              className="btn btn-primary"
+              variant="primary"
             >
               {submitLabel}
-            </button>
+            </Button>
             {!embedded && <span className="text-xs text-muted">Keine Pflichtfelder – du kannst jederzeit speichern.</span>}
           </div>
         </>

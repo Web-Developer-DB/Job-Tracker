@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import type { JobApplication, Task } from '../types';
 import { formatDateDE } from '../services/export';
+import { Button, Input, Select } from './ui';
 
 interface PlannerProps {
   tasks: Task[];
@@ -96,30 +97,28 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
 
         <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-surface-2 p-1 sm:w-auto sm:auto-cols-max sm:grid-flow-col sm:gap-2 sm:rounded-full">
           {(Object.keys(viewLabels) as ViewMode[]).map((mode) => (
-            <button
+            <Button
               key={mode}
-              className={`btn !min-h-9 w-full !px-2.5 !py-2 !text-[0.78rem] sm:w-auto sm:!px-3 sm:!py-1 ${
-                view === mode ? 'btn-primary' : 'btn-ghost'
-              }`}
+              className="w-full !min-h-9 !px-2.5 !py-2 !text-[0.78rem] sm:w-auto sm:!px-3 sm:!py-1"
+              variant={view === mode ? 'primary' : 'ghost'}
+              size="sm"
               type="button"
               onClick={() => setView(mode)}
             >
               {viewLabels[mode]}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="grid gap-3 lg:grid-cols-[2fr_1.1fr_1fr_1fr_auto]">
-        <input
-          className="input-field"
+        <Input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder="Neue Aufgabe …"
         />
 
-        <select
-          className="select-field"
+        <Select
           value={applicationId}
           onChange={(event) => setApplicationId(event.target.value)}
         >
@@ -129,31 +128,29 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
               {application.company || 'Unbenannt'}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <select
-          className="select-field"
+        <Select
           value={type}
           onChange={(event) => setType(event.target.value as Task['type'])}
         >
           <option value="task">Aufgabe</option>
           <option value="interview">Interview</option>
           <option value="reminder">Erinnerung</option>
-        </select>
+        </Select>
 
-        <input
+        <Input
           type="date"
-          className="input-field"
           value={dueDate}
           onChange={(event) => setDueDate(event.target.value)}
         />
 
-        <button
+        <Button
           type="submit"
-          className="btn btn-primary"
+          variant="primary"
         >
           Hinzufügen
-        </button>
+        </Button>
       </form>
 
       <div className="space-y-3">
@@ -177,13 +174,13 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
                   </p>
                 </div>
               </label>
-              <button
+              <Button
                 type="button"
-                className="btn btn-danger"
+                variant="destructive"
                 onClick={() => onDeleteTask(task.id)}
               >
                 Löschen
-              </button>
+              </Button>
             </div>
           ))
         )}

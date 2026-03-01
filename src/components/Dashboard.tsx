@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatDateDE } from '../services/export';
 import type { ApplicationStatus, DashboardStats } from '../types';
+import { Badge, Input } from './ui';
 
 interface DashboardProps {
   stats: DashboardStats;
@@ -9,12 +10,12 @@ interface DashboardProps {
 }
 
 const STATUS_META: Array<{ status: ApplicationStatus; label: string; color: string }> = [
-  { status: 'Entwurf', label: 'Entwurf', color: '#94a3b8' },
-  { status: 'Beworben', label: 'Beworben', color: '#2563eb' },
-  { status: 'Interview', label: 'Interview', color: '#0ea5a4' },
-  { status: 'Angebot', label: 'Angebot', color: '#16a34a' },
-  { status: 'Abgelehnt', label: 'Abgelehnt', color: '#dc2626' },
-  { status: 'Zurückgezogen', label: 'Zurückgezogen', color: '#64748b' }
+  { status: 'Entwurf', label: 'Entwurf', color: '#93a4c2' },
+  { status: 'Beworben', label: 'Beworben', color: '#5aa0ff' },
+  { status: 'Interview', label: 'Interview', color: '#7ac7f5' },
+  { status: 'Angebot', label: 'Angebot', color: '#6fdc8f' },
+  { status: 'Abgelehnt', label: 'Abgelehnt', color: '#ff7272' },
+  { status: 'Zurückgezogen', label: 'Zurückgezogen', color: '#8b95a9' }
 ];
 
 const getGreeting = () => {
@@ -121,8 +122,8 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
         <div className="grid gap-6 lg:grid-cols-[1.7fr_1fr] lg:items-center">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="chip">{getGreeting()}</span>
-              <span className="chip">Heute zählt jeder Schritt.</span>
+              <Badge>{getGreeting()}</Badge>
+              <Badge>Heute zählt jeder Schritt.</Badge>
             </div>
             <div>
               <h2 className="font-display text-2xl md:text-3xl">
@@ -177,7 +178,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
                 <p className="mt-1 text-xs text-muted">{progressCopy}</p>
                 <label className="mt-2 flex items-center gap-2 text-xs text-muted">
                   Ziel pro Woche
-                  <input
+                  <Input
                     type="number"
                     min={1}
                     max={30}
@@ -189,7 +190,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
                         event.currentTarget.blur();
                       }
                     }}
-                    className="input-field h-8 w-20 px-2 py-1 text-sm"
+                    className="h-8 w-20 px-2 py-1 text-sm"
                     aria-label="Wochenziel eingeben"
                   />
                 </label>
@@ -216,7 +217,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
               <h3 className="font-display text-lg">Monatsverlauf</h3>
               <p className="text-sm text-muted">Sechs-Monats-Entwicklung deiner Aktivitäten</p>
             </div>
-            <span className="chip">{trendText}</span>
+            <Badge>{trendText}</Badge>
           </div>
 
           <div className="mt-5 rounded-2xl border border-border bg-surface-2 p-4">
@@ -251,7 +252,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
               <h3 className="font-display text-lg">Follow-ups</h3>
               <p className="text-sm text-muted">Priorität für deinen heutigen Fokus</p>
             </div>
-            <span className="chip">{stats.followUpsDue.length} offen</span>
+            <Badge>{stats.followUpsDue.length} offen</Badge>
           </div>
 
           {stats.followUpsDue.length === 0 ? (
@@ -283,7 +284,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
       <div className="card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="font-display text-lg">Statusübersicht</h3>
-          <span className="chip">Pipeline-Health</span>
+          <Badge>Pipeline-Health</Badge>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

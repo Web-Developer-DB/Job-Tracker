@@ -1,4 +1,5 @@
 import type { ApplicationStatus, FilterRange, FilterSettings, SortOption } from '../types';
+import { Button, Input, Select } from './ui';
 
 interface FiltersBarProps {
   value: FilterSettings;
@@ -47,9 +48,9 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
           <p className="text-sm text-muted">Filtere deine Pipeline nach Status, Zeitraum und Priorität.</p>
         </div>
         {(value.search || value.status !== 'Alle' || value.range !== 'all') && (
-          <button
+          <Button
             type="button"
-            className="btn btn-ghost"
+            variant="ghost"
             onClick={() =>
               onChange({
                 ...value,
@@ -60,15 +61,14 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
             }
           >
             Filter zurücksetzen
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <label className="field-label">
           Suche
-          <input
-            className="input-field"
+          <Input
             placeholder="Unternehmen oder Position"
             value={value.search}
             onChange={(event) => update({ search: event.target.value })}
@@ -77,8 +77,7 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
 
         <label className="field-label">
           Status
-          <select
-            className="select-field"
+          <Select
             value={value.status}
             onChange={(event) => update({ status: event.target.value as ApplicationStatus | 'Alle' })}
           >
@@ -87,13 +86,12 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
                 {status}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="field-label">
           Zeitraum
-          <select
-            className="select-field"
+          <Select
             value={value.range}
             onChange={(event) => update({ range: event.target.value as FilterRange })}
           >
@@ -102,13 +100,12 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
                 {range.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="field-label">
           Sortieren
-          <select
-            className="select-field"
+          <Select
             value={value.sort}
             onChange={(event) => update({ sort: event.target.value as SortOption })}
           >
@@ -117,7 +114,7 @@ export const FiltersBar = ({ value, onChange }: FiltersBarProps) => {
                 {sort.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
     </div>
