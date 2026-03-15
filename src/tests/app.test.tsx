@@ -143,6 +143,15 @@ describe('App', () => {
     expect(mockPrint).not.toHaveBeenCalled();
   });
 
+  it('marks the mobile action bar as print-hidden', () => {
+    const store = createStoreSlice();
+    mockUseAppStore.mockReturnValue(store);
+
+    renderApp();
+
+    expect(screen.getByRole('navigation', { name: /mobile hauptaktionen/i })).toHaveClass('print-hidden');
+  });
+
   it('resets filters from empty filtered list view', async () => {
     const user = userEvent.setup();
     const store = createStoreSlice();

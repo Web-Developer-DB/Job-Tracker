@@ -21,6 +21,7 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 - 🪟 App-Shell mit frosted Hintergrund, klareren Abständen und Touch-freundlichen Controls; Light-/Dark-Theme harmonisiert.
 - ⬆️ Toolchain und Abhängigkeiten auf aktuelle stabile Linien gehoben (u. a. React 19, Tailwind 4, TypeScript 5.9, Zustand 5, Framer Motion 12, Testing-Libs aktualisiert).
 - 🔧 Node-Engine auf LTS-Ziel angehoben: `>=22.12.0`.
+- 🧰 Node-Version projektweit konsistent gemacht: `.nvmrc`, `.node-version`, `.npmrc` mit `engine-strict=true` und README-Voraussetzungen auf `>=22.12.0` vereinheitlicht.
 - 🧵 Tailwind-PostCSS-Integration auf v4-Muster migriert (`@tailwindcss/postcss`, CSS-Einstieg via `@import 'tailwindcss'` + `@config`).
 - 🖥️ Desktop-Layout deutlich fokussierter gemacht: zentrale Content-Breite begrenzt (`980px`) und auf großen Screens mit theme-abhängigen Seitenflächen ergänzt.
 - 🧭 Header-Interaktion neu geordnet: klare rechte „Schnellaktionen“-Spalte mit prominentem CTA „Neue Bewerbung“.
@@ -28,6 +29,7 @@ Das Format orientiert sich an **Keep a Changelog** und **Semantic Versioning (Se
 
 ### Behoben 🛠️
 - 🖨️ Druckdialog in installierter Chrome-PWA (Windows): Mehrfaches Drucken funktioniert wieder zuverlässig; der zweite Klick auf „PDF / Drucken“ öffnet erneut den Druckdialog.
+- 🖨️ Mobile Bottom-Action-Bar wird beim Drucken/PDF-Erstellen nicht mehr mitgerendert; die Leiste ist jetzt explizit als `print-hidden` markiert.
 - 🖨️ `react-to-print`-Migration auf v3 API (`contentRef`) für Build-Kompatibilität.
 - 🔐 Build-Audit bereinigt: Rollup auf gepatchte Version angehoben (Sicherheitswarnung entfernt).
 - 🧯 Fallback-Hinweis beim Backup-Export ergänzt: In Browsern ohne Speicherort-Auswahl wird Download weiter genutzt und transparent kommuniziert.
@@ -79,9 +81,10 @@ Umgesetzte Fixes:
 
 #### Smoke-Test Liste
 - `npm run build` läuft erfolgreich (Bundle erzeugt).
-- `npm run dev` lokal starten: fehlgeschlagen in dieser Umgebung wegen Node 18 (`Vite 7 braucht >=20.19/22.12`).
+- `npm run build` wurde zusätzlich unter Node `v22.14.0` erfolgreich verifiziert.
+- `npm run test:run -- src/tests/app.test.tsx` läuft unter Node `v22.14.0` erfolgreich.
 - Mobile Device-Mode/echtes Gerät in dieser CLI-Umgebung nicht direkt reproduzierbar.
-- Voller `vitest`-Lauf blockiert in dieser Umgebung durch ESM/Worker-Fehler (`ERR_REQUIRE_ESM` in jsdom-Abhängigkeit).
+- Voller `vitest`-Lauf wurde in dieser Änderung nicht erneut komplett ausgeführt; gezielt verifiziert wurde `src/tests/app.test.tsx`.
 - Codepfade für Liste, Neu, Edit, Löschen/Undo, Filter-Sheet und Sticky-Suche wurden implementiert.
 - Keine bewusst eingeführten Änderungen an Datenmodell/API/Business-Regeln.
 

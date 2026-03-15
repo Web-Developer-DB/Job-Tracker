@@ -10,7 +10,7 @@ interface MobileActionBarProps {
 export const MobileActionBar = ({ onCreate, onSearch, onFilter, hasActiveFilters = false }: MobileActionBarProps) => {
   return (
     <nav
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden"
+      className="print-hidden pointer-events-none fixed inset-x-0 bottom-0 z-40 md:hidden"
       aria-label="Mobile Hauptaktionen"
     >
       <div className="content-stage px-3 pb-[calc(env(safe-area-inset-bottom)+0.7rem)] pt-2">
