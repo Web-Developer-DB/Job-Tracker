@@ -87,12 +87,14 @@ Auf iOS nutzt du: **Teilen → Zum Home-Bildschirm**.
 
 ### ✅ Voraussetzungen
 
-- 🟩 Node.js **18+** empfohlen
-- 📦 npm **9+**
+- 🟩 Node.js **>=22.12.0** erforderlich
+- 📦 npm **10+**
 
 ### 📥 Installation
 
 ```bash
+# optional, falls nvm genutzt wird
+nvm use
 npm install
 ```
 
