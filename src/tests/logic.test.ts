@@ -52,6 +52,18 @@ describe('application CRUD', () => {
     const updated = changeStatus([app], app.id, 'Beworben', baseDate);
     expect(updated[0].followUpDate).toBe('2025-01-08');
   });
+
+  it('clears follow-up when editing an application to a terminal status', () => {
+    const app = createApplication({ company: 'Nova', followUpDate: '2025-01-20' }, baseDate);
+    const updated = updateApplication([app], app.id, { status: 'Abgelehnt' }, baseDate);
+    expect(updated[0].followUpDate).toBeUndefined();
+  });
+
+  it('records status history when editing the status through a full update', () => {
+    const app = createApplication({ company: 'Nova', status: 'Beworben' }, baseDate);
+    const updated = updateApplication([app], app.id, { status: 'Interview' }, baseDate);
+    expect(updated[0].history).toEqual([{ status: 'Interview', date: baseDate.toISOString() }]);
+  });
 });
 
 describe('task CRUD', () => {
@@ -65,6 +77,19 @@ describe('task CRUD', () => {
 
     const removed = deleteTask(updated, task.id);
     expect(removed).toHaveLength(0);
+  });
+
+  it('keeps task completion metadata consistent', () => {
+    const task = createTask({ title: 'Follow-up mail', applicationId: 'app-1' }, baseDate);
+    const completed = updateTask([task], task.id, { done: true }, baseDate);
+
+    expect(completed[0].completedAt).toBe(baseDate.toISOString());
+
+    const reopened = updateTask(completed, task.id, { done: false }, baseDate);
+
+    expect(reopened[0].done).toBe(false);
+    expect(reopened[0].completedAt).toBeUndefined();
+    expect(reopened[0].completionNote).toBeUndefined();
   });
 });
 
@@ -155,6 +180,19 @@ describe('dashboard stats', () => {
     expect(stats.byStatus.Interview).toBe(1);
     expect(stats.lastSixMonths.length).toBe(6);
   });
+
+  it('excludes terminal applications from due follow-ups', () => {
+    const apps = [
+      createApplication({ status: 'Abgelehnt', followUpDate: '2025-01-10' }, baseDate),
+      createApplication({ status: 'Zurückgezogen', followUpDate: '2025-01-10' }, baseDate),
+      createApplication({ status: 'Beworben', followUpDate: '2025-01-10' }, baseDate)
+    ];
+
+    const stats = getDashboardStats(apps, new Date('2025-01-20T00:00:00Z'));
+
+    expect(stats.followUpsDue).toHaveLength(1);
+    expect(stats.followUpsDue[0].status).toBe('Beworben');
+  });
 });
 
 describe('backup and restore', () => {
@@ -186,5 +224,68 @@ describe('backup and restore', () => {
     const restored = restoreBackup({} as never);
     expect(restored.settings.weeklyGoal).toBe(defaultState.settings.weeklyGoal);
     expect(restored.applications).toHaveLength(0);
+  });
+
+  it('normalizes restored data before it reaches the app', () => {
+    const restored = restoreBackup({
+      version: '1.0',
+      createdAt: baseDate.toISOString(),
+      data: {
+        applications: [
+          {
+            id: 'app-1',
+            company: '  Nova  ',
+            link: 'javascript:alert(1)',
+            status: 'Abgelehnt',
+            followUpDate: '2025-01-10',
+            createdAt: 'not-a-date',
+            updatedAt: baseDate.toISOString()
+          }
+        ],
+        tasks: [
+          {
+            id: 'task-1',
+            applicationId: 'missing-app',
+            title: '  Follow-up  ',
+            done: false,
+            completionNote: 'old note',
+            completedAt: baseDate.toISOString(),
+            type: 'invalid',
+            createdAt: baseDate.toISOString(),
+            updatedAt: baseDate.toISOString()
+          }
+        ],
+        settings: {
+          theme: 'invalid',
+          sort: 'invalid',
+          filterStatus: 'invalid',
+          filterRange: 'invalid',
+          search: '  dev  ',
+          weeklyGoal: 999
+        }
+      }
+    } as never);
+
+    expect(restored.applications[0]).toMatchObject({
+      company: 'Nova',
+      status: 'Abgelehnt'
+    });
+    expect(restored.applications[0].followUpDate).toBeUndefined();
+    expect(restored.applications[0].link).toBeUndefined();
+    expect(restored.tasks[0]).toMatchObject({
+      applicationId: 'unknown',
+      title: 'Follow-up',
+      done: false,
+      type: 'task'
+    });
+    expect(restored.tasks[0].completedAt).toBeUndefined();
+    expect(restored.settings).toMatchObject({
+      theme: 'dark',
+      sort: 'createdAt',
+      filterStatus: 'Alle',
+      filterRange: 'all',
+      search: 'dev',
+      weeklyGoal: 30
+    });
   });
 });

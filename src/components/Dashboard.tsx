@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatDateDE } from '../services/export';
+import { parseDateValue, stripTime } from '../services/date';
 import type { ApplicationStatus, DashboardStats } from '../types';
 import { Badge, Input } from './ui';
 
@@ -24,8 +25,6 @@ const getGreeting = () => {
   if (hour < 18) return 'Guten Tag';
   return 'Guten Abend';
 };
-
-const stripTime = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
 // Dashboard zeigt KPIs, Verlauf und Follow-ups.
 export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardProps) => {
@@ -62,11 +61,11 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
 
   const today = stripTime(new Date());
   const overdueCount = stats.followUpsDue.filter((application) => {
-    const followUpDate = application.followUpDate ? stripTime(new Date(application.followUpDate)) : null;
+    const followUpDate = application.followUpDate ? parseDateValue(application.followUpDate) : null;
     return Boolean(followUpDate && followUpDate < today);
   }).length;
   const dueTodayCount = stats.followUpsDue.filter((application) => {
-    const followUpDate = application.followUpDate ? stripTime(new Date(application.followUpDate)) : null;
+    const followUpDate = application.followUpDate ? parseDateValue(application.followUpDate) : null;
     return Boolean(followUpDate && followUpDate.getTime() === today.getTime());
   }).length;
 
@@ -262,7 +261,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
             <ul className="mt-4 space-y-2">
               {stats.followUpsDue.slice(0, 5).map((application) => {
                 const dateLabel = application.followUpDate ? formatDateDE(application.followUpDate) : 'Ohne Datum';
-                const applicationDate = application.followUpDate ? stripTime(new Date(application.followUpDate)) : null;
+                const applicationDate = application.followUpDate ? parseDateValue(application.followUpDate) : null;
                 const isOverdue = Boolean(applicationDate && applicationDate < today);
 
                 return (

@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import type { JobApplication, Task } from '../types';
 import { formatDateDE } from '../services/export';
+import { parseDateValue } from '../services/date';
 import { Button, Input, Select } from './ui';
 
 interface PlannerProps {
@@ -55,7 +56,8 @@ export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDelete
     return tasks.filter((task) => {
       // Wenn kein Fälligkeitsdatum gesetzt ist, nur in „Diese Woche“ zeigen.
       if (!task.dueDate) return view === 'week';
-      const due = new Date(task.dueDate);
+      const due = parseDateValue(task.dueDate);
+      if (!due) return false;
       if (view === 'today') {
         return due.toDateString() === startOfToday.toDateString();
       }

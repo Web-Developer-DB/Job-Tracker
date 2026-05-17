@@ -7,8 +7,10 @@ import type {
   SortOption,
   Task,
   BackupFile,
-  DashboardStats
+  DashboardStats,
+  ThemeMode
 } from '../types';
+import { normalizeDateOnly, parseDateValue, stripTime, toDateOnly } from './date';
 
 // Feste Reihenfolge für Status-Sortierung.
 const STATUS_ORDER: ApplicationStatus[] = [
@@ -19,6 +21,12 @@ const STATUS_ORDER: ApplicationStatus[] = [
   'Abgelehnt',
   'Zurückgezogen'
 ];
+
+const TERMINAL_STATUSES: ApplicationStatus[] = ['Abgelehnt', 'Zurückgezogen'];
+const SORT_OPTIONS: SortOption[] = ['createdAt', 'status', 'followUp'];
+const FILTER_RANGES: FilterRange[] = ['all', '7d', '14d', '30d', '90d', '180d', '365d'];
+const THEME_MODES: ThemeMode[] = ['light', 'dark'];
+const TASK_TYPES: Task['type'][] = ['task', 'interview', 'reminder'];
 
 // Monatslabels für die Verlaufsgrafik.
 const MONTH_LABELS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
@@ -40,28 +48,13 @@ export const defaultState: AppState = {
 // Neue Bewerbung erzeugen und Standardwerte setzen.
 export const createApplication = (partial: Partial<JobApplication> = {}, now: Date = new Date()): JobApplication => {
   const timestamp = now.toISOString();
-  return {
-    id: generateId(),
-    status: partial.status ?? 'Entwurf',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    ...partial
-  };
+  return normalizeApplication(partial, timestamp);
 };
 
 // Neue Aufgabe erzeugen und Standardwerte setzen.
 export const createTask = (partial: Partial<Task> = {}, now: Date = new Date()): Task => {
   const timestamp = now.toISOString();
-  return {
-    id: generateId(),
-    applicationId: partial.applicationId ?? 'unknown',
-    title: partial.title ?? '',
-    done: partial.done ?? false,
-    type: partial.type ?? 'task',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    ...partial
-  };
+  return normalizeTask(partial, new Set(), timestamp);
 };
 
 // Bewerbung in die Liste einfügen (oben).
@@ -77,15 +70,30 @@ export const updateApplication = (
   patch: Partial<JobApplication>,
   now: Date = new Date()
 ): JobApplication[] =>
-  applications.map((application) =>
-    application.id === id
-      ? {
-          ...application,
-          ...patch,
-          updatedAt: now.toISOString()
+  applications.map((application) => {
+    if (application.id !== id) return application;
+
+    const normalizedCurrent = normalizeApplication(application, now.toISOString());
+    const nextApplication = normalizeApplication({
+      ...application,
+      ...patch,
+      updatedAt: now.toISOString()
+    }, now.toISOString());
+    const statusChanged = normalizedCurrent.status !== nextApplication.status;
+
+    if (!statusChanged) return nextApplication;
+
+    return {
+      ...nextApplication,
+      history: [
+        ...(normalizedCurrent.history ?? []),
+        {
+          status: nextApplication.status,
+          date: now.toISOString()
         }
-      : application
-  );
+      ]
+    };
+  });
 
 // Bewerbung löschen.
 export const deleteApplication = (applications: JobApplication[], id: string): JobApplication[] =>
@@ -103,8 +111,7 @@ export const changeStatus = (
     const history = application.history ? [...application.history] : [];
     history.push({ status, date: now.toISOString() });
     const calculatedFollowUp = calculateFollowUpDate(status, now) ?? undefined;
-    const followUpDate =
-      status === 'Abgelehnt' || status === 'Zurückgezogen' ? undefined : application.followUpDate ?? calculatedFollowUp;
+    const followUpDate = isTerminalStatus(status) ? undefined : application.followUpDate ?? calculatedFollowUp;
     return {
       ...application,
       status,
@@ -138,15 +145,34 @@ export const addTask = (tasks: Task[], task: Task): Task[] => [task, ...tasks];
 
 // Aufgabe aktualisieren.
 export const updateTask = (tasks: Task[], id: string, patch: Partial<Task>, now: Date = new Date()): Task[] =>
-  tasks.map((task) =>
-    task.id === id
-      ? {
-          ...task,
-          ...patch,
-          updatedAt: now.toISOString()
-        }
-      : task
-  );
+  tasks.map((task) => {
+    if (task.id !== id) return task;
+
+    const nextTask = {
+      ...task,
+      ...patch,
+      updatedAt: now.toISOString()
+    };
+
+    if (patch.done === false) {
+      return {
+        ...nextTask,
+        done: false,
+        completionNote: undefined,
+        completedAt: undefined
+      };
+    }
+
+    if (patch.done === true) {
+      return {
+        ...nextTask,
+        done: true,
+        completedAt: nextTask.completedAt ?? now.toISOString()
+      };
+    }
+
+    return nextTask;
+  });
 
 // Aufgabe löschen.
 export const deleteTask = (tasks: Task[], id: string): Task[] => tasks.filter((task) => task.id !== id);
@@ -167,7 +193,8 @@ export const filterApplications = (
       if (!company.includes(search) && !position.includes(search)) return false;
     }
     if (filters.range !== 'all') {
-      const createdAt = new Date(application.createdAt);
+      const createdAt = parseDateValue(application.createdAt);
+      if (!createdAt) return false;
       const cutoff = subtractDays(now, rangeToDays(filters.range));
       if (createdAt < cutoff) return false;
     }
@@ -187,11 +214,11 @@ export const sortApplications = (applications: JobApplication[], sort: SortOptio
       if (!a.followUpDate && !b.followUpDate) return 0;
       if (!a.followUpDate) return 1;
       if (!b.followUpDate) return -1;
-      return new Date(a.followUpDate).getTime() - new Date(b.followUpDate).getTime();
+      return getSortableTime(a.followUpDate) - getSortableTime(b.followUpDate);
     });
     return sorted;
   }
-  sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  sorted.sort((a, b) => getSortableTime(b.createdAt) - getSortableTime(a.createdAt));
   return sorted;
 };
 
@@ -203,13 +230,18 @@ export const getDashboardStats = (applications: JobApplication[], now: Date = ne
   }, {} as Record<ApplicationStatus, number>);
 
   applications.forEach((application) => {
+    if (!isApplicationStatus(application.status)) return;
     byStatus[application.status] += 1;
   });
 
   const startOfWeek = getStartOfWeek(now);
-  const thisWeek = applications.filter((application) => new Date(application.createdAt) >= startOfWeek).length;
+  const thisWeek = applications.filter((application) => {
+    const createdAt = parseDateValue(application.createdAt);
+    return Boolean(createdAt && createdAt >= startOfWeek);
+  }).length;
   const thisMonth = applications.filter((application) => {
-    const date = new Date(application.createdAt);
+    const date = parseDateValue(application.createdAt);
+    if (!date) return false;
     return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }).length;
 
@@ -217,16 +249,20 @@ export const getDashboardStats = (applications: JobApplication[], now: Date = ne
     const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
     const label = MONTH_LABELS[date.getMonth()];
     const count = applications.filter((application) => {
-      const created = new Date(application.createdAt);
+      const created = parseDateValue(application.createdAt);
+      if (!created) return false;
       return created.getMonth() === date.getMonth() && created.getFullYear() === date.getFullYear();
     }).length;
     return { label, count };
   });
 
   const followUpsDue = applications
-    .filter((application) => application.followUpDate)
-    .filter((application) => new Date(application.followUpDate ?? '') <= stripTime(now))
-    .sort((a, b) => new Date(a.followUpDate ?? '').getTime() - new Date(b.followUpDate ?? '').getTime());
+    .filter((application) => application.followUpDate && !isTerminalStatus(application.status))
+    .filter((application) => {
+      const followUpDate = parseDateValue(application.followUpDate);
+      return Boolean(followUpDate && followUpDate <= stripTime(now));
+    })
+    .sort((a, b) => getSortableTime(a.followUpDate) - getSortableTime(b.followUpDate));
 
   return {
     total: applications.length,
@@ -248,18 +284,192 @@ export const buildBackup = (state: AppState, now: Date = new Date()): BackupFile
 // Backup prüfen und auf gültigen Zustand zurückführen.
 export const restoreBackup = (backup: BackupFile): AppState => {
   if (!backup || backup.version !== '1.0' || !backup.data) {
-    return { ...defaultState };
+    return cloneDefaultState();
   }
 
+  const fallbackTimestamp = new Date().toISOString();
+  const applications = Array.isArray(backup.data.applications)
+    ? normalizeApplications(backup.data.applications, fallbackTimestamp)
+    : [];
+  const applicationIds = new Set(applications.map((application) => application.id));
+  const tasks = Array.isArray(backup.data.tasks)
+    ? backup.data.tasks.map((task) => normalizeTask(task, applicationIds, fallbackTimestamp))
+    : [];
+
   return {
-    applications: Array.isArray(backup.data.applications) ? backup.data.applications : [],
-    tasks: Array.isArray(backup.data.tasks) ? backup.data.tasks : [],
-    settings: {
-      ...defaultState.settings,
-      ...backup.data.settings
-    }
+    applications,
+    tasks,
+    settings: normalizeSettings(backup.data.settings)
   };
 };
+
+const cloneDefaultState = (): AppState => ({
+  applications: [],
+  tasks: [],
+  settings: { ...defaultState.settings }
+});
+
+const normalizeApplications = (applications: unknown[], fallbackTimestamp: string): JobApplication[] => {
+  const usedIds = new Set<string>();
+
+  return applications.map((application) => {
+    const normalized = normalizeApplication(application, fallbackTimestamp);
+    if (!usedIds.has(normalized.id)) {
+      usedIds.add(normalized.id);
+      return normalized;
+    }
+
+    const id = generateId();
+    usedIds.add(id);
+    return { ...normalized, id };
+  });
+};
+
+const normalizeApplication = (value: unknown, fallbackTimestamp: string): JobApplication => {
+  const source = getRecord(value);
+  const status = isApplicationStatus(source.status) ? source.status : 'Entwurf';
+  const followUpDate = isTerminalStatus(status) ? undefined : normalizeDateOnlyValue(source.followUpDate);
+  const history = normalizeHistory(source.history);
+  const application: JobApplication = {
+    id: normalizeId(source.id) ?? generateId(),
+    status,
+    createdAt: normalizeTimestamp(source.createdAt, fallbackTimestamp),
+    updatedAt: normalizeTimestamp(source.updatedAt, fallbackTimestamp)
+  };
+
+  assignOptional(application, 'company', normalizeText(source.company));
+  assignOptional(application, 'position', normalizeText(source.position));
+  assignOptional(application, 'location', normalizeText(source.location));
+  assignOptional(application, 'link', normalizeHttpUrl(source.link));
+  assignOptional(application, 'source', normalizeText(source.source));
+  assignOptional(application, 'followUpDate', followUpDate);
+  assignOptional(application, 'contact', normalizeText(source.contact));
+  assignOptional(application, 'notes', normalizeText(source.notes));
+  assignOptional(application, 'history', history.length > 0 ? history : undefined);
+
+  return application;
+};
+
+const normalizeTask = (value: unknown, applicationIds: Set<string>, fallbackTimestamp: string): Task => {
+  const source = getRecord(value);
+  const done = source.done === true;
+  const task: Task = {
+    id: normalizeId(source.id) ?? generateId(),
+    applicationId: normalizeApplicationId(source.applicationId, applicationIds),
+    title: normalizeText(source.title) ?? '',
+    done,
+    type: isTaskType(source.type) ? source.type : 'task',
+    createdAt: normalizeTimestamp(source.createdAt, fallbackTimestamp),
+    updatedAt: normalizeTimestamp(source.updatedAt, fallbackTimestamp)
+  };
+
+  assignOptional(task, 'dueDate', normalizeDateOnlyValue(source.dueDate));
+
+  if (done) {
+    assignOptional(task, 'completionNote', normalizeText(source.completionNote));
+    assignOptional(task, 'completedAt', normalizeTimestamp(source.completedAt, undefined));
+  }
+
+  return task;
+};
+
+const normalizeSettings = (value: unknown): AppState['settings'] => {
+  const source = getRecord(value);
+
+  return {
+    theme: isThemeMode(source.theme) ? source.theme : defaultState.settings.theme,
+    sort: isSortOption(source.sort) ? source.sort : defaultState.settings.sort,
+    filterStatus:
+      source.filterStatus === 'Alle' || isApplicationStatus(source.filterStatus)
+        ? source.filterStatus
+        : defaultState.settings.filterStatus,
+    filterRange: isFilterRange(source.filterRange) ? source.filterRange : defaultState.settings.filterRange,
+    search: normalizeText(source.search) ?? defaultState.settings.search,
+    weeklyGoal: normalizeWeeklyGoal(source.weeklyGoal)
+  };
+};
+
+const normalizeHistory = (value: unknown): NonNullable<JobApplication['history']> => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      const source = getRecord(item);
+      if (!isApplicationStatus(source.status)) return null;
+      const date = normalizeTimestamp(source.date, undefined);
+      if (!date) return null;
+      return { status: source.status, date };
+    })
+    .filter((item): item is NonNullable<JobApplication['history']>[number] => Boolean(item));
+};
+
+const assignOptional = <T extends object, K extends keyof T>(target: T, key: K, value: T[K] | undefined): void => {
+  if (value !== undefined) {
+    target[key] = value;
+  }
+};
+
+const getRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+const normalizeText = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  return normalized ? normalized : undefined;
+};
+
+const normalizeId = (value: unknown): string | undefined => normalizeText(value);
+
+const normalizeApplicationId = (value: unknown, applicationIds: Set<string>): string => {
+  const applicationId = normalizeId(value);
+  if (!applicationId || applicationId === 'unknown') return 'unknown';
+  return applicationIds.size === 0 || applicationIds.has(applicationId) ? applicationId : 'unknown';
+};
+
+const normalizeDateOnlyValue = (value: unknown): string | undefined =>
+  typeof value === 'string' ? normalizeDateOnly(value) : undefined;
+
+function normalizeTimestamp(value: unknown, fallback: string): string;
+function normalizeTimestamp(value: unknown, fallback?: undefined): string | undefined;
+function normalizeTimestamp(value: unknown, fallback?: string): string | undefined {
+  if (typeof value !== 'string') return fallback;
+  const date = parseDateValue(value);
+  return date ? date.toISOString() : fallback;
+}
+
+const normalizeHttpUrl = (value: unknown): string | undefined => {
+  const text = normalizeText(value);
+  if (!text) return undefined;
+
+  try {
+    const url = new URL(text);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const normalizeWeeklyGoal = (value: unknown): number => {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  const rounded = Math.round(numeric);
+  if (!Number.isFinite(rounded)) return defaultState.settings.weeklyGoal;
+  return Math.min(30, Math.max(1, rounded));
+};
+
+const isApplicationStatus = (value: unknown): value is ApplicationStatus =>
+  typeof value === 'string' && STATUS_ORDER.includes(value as ApplicationStatus);
+
+const isSortOption = (value: unknown): value is SortOption =>
+  typeof value === 'string' && SORT_OPTIONS.includes(value as SortOption);
+
+const isFilterRange = (value: unknown): value is FilterRange =>
+  typeof value === 'string' && FILTER_RANGES.includes(value as FilterRange);
+
+const isThemeMode = (value: unknown): value is ThemeMode =>
+  typeof value === 'string' && THEME_MODES.includes(value as ThemeMode);
+
+const isTaskType = (value: unknown): value is Task['type'] =>
+  typeof value === 'string' && TASK_TYPES.includes(value as Task['type']);
 
 // ID erzeugen (crypto.randomUUID falls verfügbar).
 const generateId = (): string => {
@@ -268,6 +478,10 @@ const generateId = (): string => {
   }
   return `id_${Math.random().toString(36).slice(2)}${Date.now()}`;
 };
+
+export const isTerminalStatus = (status: ApplicationStatus): boolean => TERMINAL_STATUSES.includes(status);
+
+const getSortableTime = (value?: string): number => parseDateValue(value)?.getTime() ?? Number.MAX_SAFE_INTEGER;
 
 // Zeitraum-Filter in Tage umrechnen.
 const rangeToDays = (range: FilterRange): number => {
@@ -295,12 +509,6 @@ const subtractDays = (date: Date, days: number): Date => {
   target.setDate(target.getDate() - days);
   return target;
 };
-
-// Date -> "YYYY-MM-DD" (nur Datum, ohne Uhrzeit).
-const toDateOnly = (date: Date): string => date.toISOString().slice(0, 10);
-
-// Zeit auf 00:00:00 setzen (für Vergleiche).
-const stripTime = (date: Date): Date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
 // Start der Woche (Montag) berechnen.
 const getStartOfWeek = (date: Date): Date => {
