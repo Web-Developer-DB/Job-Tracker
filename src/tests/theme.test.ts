@@ -17,6 +17,11 @@ describe('theme service', () => {
     expect(resolveInitialTheme('light')).toBe('light');
   });
 
+  it('ignores invalid stored theme values', () => {
+    window.matchMedia = vi.fn().mockReturnValue({ matches: false }) as unknown as typeof window.matchMedia;
+    expect(resolveInitialTheme('invalid' as never)).toBe('light');
+  });
+
   it('falls back to system preference when no stored theme exists', () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia;
     expect(resolveInitialTheme()).toBe('dark');

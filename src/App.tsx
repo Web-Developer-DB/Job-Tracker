@@ -10,6 +10,7 @@ import { PrintView } from './components/PrintView';
 import { Skeleton } from './components/Skeleton';
 import { Badge, BottomSheet, Button, Input, Select, useToast } from './components/ui';
 import { downloadJsonFile, saveJsonWithPicker, supportsSaveFilePicker } from './services/fileSave';
+import { parseDateValue } from './services/date';
 import { filterApplications, getDashboardStats, sortApplications } from './services/logic';
 import type { ApplicationStatus, FilterRange, FilterSettings, SortOption, Task } from './types';
 import { useAppStore } from './store/appStore';
@@ -236,8 +237,8 @@ const App = () => {
     for (const key of Object.keys(grouped)) {
       grouped[key] = [...grouped[key]].sort((a, b) => {
         if (a.done !== b.done) return Number(a.done) - Number(b.done);
-        const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-        const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+        const aDue = parseDateValue(a.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const bDue = parseDateValue(b.dueDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
         return aDue - bDue;
       });
     }

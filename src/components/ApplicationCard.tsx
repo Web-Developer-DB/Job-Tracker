@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { ApplicationStatus, JobApplication, Task } from '../types';
 import { StatusBadge } from './StatusBadge';
 import { formatDateDE } from '../services/export';
+import { isTerminalStatus } from '../services/logic';
 import { ApplicationForm, type ApplicationFormValues } from './ApplicationForm';
 import { Button, Input, Select } from './ui';
 
@@ -38,6 +39,11 @@ export const ApplicationCard = ({
   const [completionNoteDraft, setCompletionNoteDraft] = useState('');
 
   const tasksLabel = taskCount === 1 ? '1 Aufgabe geplant' : `${taskCount} Aufgaben geplant`;
+  const followUpLabel = isTerminalStatus(application.status)
+    ? 'Nicht relevant'
+    : application.followUpDate
+      ? formatDateDE(application.followUpDate)
+      : 'Noch nicht geplant';
 
   const startTaskEdit = (task: Task) => {
     setEditingTaskId(task.id);
@@ -95,7 +101,7 @@ export const ApplicationCard = ({
         </div>
         <div className="card-soft px-3 py-2">
           <p className="text-xs text-muted">Follow-up</p>
-          <p className="font-medium text-text">{application.followUpDate ? formatDateDE(application.followUpDate) : 'Noch nicht geplant'}</p>
+          <p className="font-medium text-text">{followUpLabel}</p>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { calculateFollowUpDate } from '../services/logic';
+import { calculateFollowUpDate, isTerminalStatus } from '../services/logic';
 import type { ApplicationStatus, JobApplication } from '../types';
 import { Badge, Button, Input, Select, Textarea } from './ui';
 
@@ -41,7 +41,7 @@ const isLikelyUrl = (value: string): boolean => {
   if (!value.trim()) return true;
   try {
     const parsed = new URL(value.trim());
-    return Boolean(parsed.protocol && parsed.host);
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && Boolean(parsed.host);
   } catch {
     return false;
   }
@@ -75,6 +75,7 @@ export const ApplicationForm = ({
 
   const isEditing = Boolean(initial);
   const isFinalStep = activeStep === FORM_STEPS.length - 1;
+  const statusBlocksFollowUp = isTerminalStatus(status);
   const linkInvalid = showValidationErrors && !isLikelyUrl(link);
 
   const resetForm = () => {
@@ -93,6 +94,10 @@ export const ApplicationForm = ({
 
   const handleStatusChange = (nextStatus: ApplicationStatus) => {
     setStatus(nextStatus);
+    if (isTerminalStatus(nextStatus)) {
+      setFollowUpDate('');
+      return;
+    }
     if (initial || followUpDate) return;
     const suggestedDate = calculateFollowUpDate(nextStatus);
     if (suggestedDate) {
@@ -112,7 +117,7 @@ export const ApplicationForm = ({
     setLink(initial.link ?? '');
     setSource(initial.source ?? '');
     setStatus(initial.status ?? 'Entwurf');
-    setFollowUpDate(initial.followUpDate ?? '');
+    setFollowUpDate(initial.status && isTerminalStatus(initial.status) ? '' : initial.followUpDate ?? '');
     setContact(initial.contact ?? '');
     setNotes(initial.notes ?? '');
     setStepMode(false);
@@ -151,7 +156,7 @@ export const ApplicationForm = ({
       link: normalize(link),
       source: normalize(source),
       status,
-      followUpDate: normalize(followUpDate),
+      followUpDate: statusBlocksFollowUp ? undefined : normalize(followUpDate),
       contact: normalize(contact),
       notes: normalize(notes)
     });
@@ -245,9 +250,14 @@ export const ApplicationForm = ({
               name="followUpDate"
               type="date"
               value={followUpDate}
+              disabled={statusBlocksFollowUp}
               onChange={(event) => setFollowUpDate(event.target.value)}
             />
-            <span className="field-note">Wird bei Statuswechsel automatisch vorgeschlagen.</span>
+            <span className="field-note">
+              {statusBlocksFollowUp
+                ? 'Für diesen Status ist kein Follow-up notwendig.'
+                : 'Wird bei Statuswechsel automatisch vorgeschlagen.'}
+            </span>
           </label>
 
           <label className="field-label md:col-span-2">
@@ -397,6 +407,7 @@ export const ApplicationForm = ({
             name="followUpDate"
             type="date"
             value={followUpDate}
+            disabled={statusBlocksFollowUp}
             onChange={(event) => setFollowUpDate(event.target.value)}
           />
         </label>
@@ -437,7 +448,9 @@ export const ApplicationForm = ({
           <h2 className="font-display text-xl">{initial ? 'Bewerbung bearbeiten' : 'Neue Bewerbung'}</h2>
           <p className="text-sm text-muted">
             {embedded
-              ? 'Passe die Felder an und speichere direkt in dieser Bewerbung.'
+              ? initial
+                ? 'Passe die Felder an und speichere direkt in dieser Bewerbung.'
+                : 'Fülle die wichtigsten Felder aus und speichere die Bewerbung.'
               : 'Schnell eintragen, Fortschritt sichtbar machen und direkt den nächsten Schritt planen.'}
           </p>
         </div>

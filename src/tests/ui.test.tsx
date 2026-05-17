@@ -34,6 +34,17 @@ describe('ApplicationForm', () => {
     const followUpInput = screen.getByLabelText(/follow-up-datum/i) as HTMLInputElement;
     expect(followUpInput.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
+
+  it('clears and disables follow-up for terminal statuses', () => {
+    render(<ApplicationForm onSubmit={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/^status$/i), { target: { value: 'Beworben' } });
+    fireEvent.change(screen.getByLabelText(/^status$/i), { target: { value: 'Abgelehnt' } });
+
+    const followUpInput = screen.getByLabelText(/follow-up-datum/i) as HTMLInputElement;
+    expect(followUpInput.value).toBe('');
+    expect(followUpInput).toBeDisabled();
+  });
 });
 
 describe('Dashboard', () => {

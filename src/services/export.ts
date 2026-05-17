@@ -1,4 +1,7 @@
 import type { ExportRow, JobApplication } from '../types';
+import { formatDateDE } from './date';
+
+export { formatDateDE };
 
 // Aus Bewerbungen eine einfache Tabellenstruktur für den Export bauen.
 export const buildExportRows = (applications: JobApplication[]): ExportRow[] =>
@@ -11,13 +14,6 @@ export const buildExportRows = (applications: JobApplication[]): ExportRow[] =>
   }));
 
 // Datum in deutsches Format umwandeln (z.B. 31.01.2025).
-export const formatDateDE = (value?: string): string => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('de-DE');
-};
-
 // Status in ein einfaches Ergebnis-Feld übersetzen.
 const statusToResult = (status: JobApplication['status']): string => {
   switch (status) {

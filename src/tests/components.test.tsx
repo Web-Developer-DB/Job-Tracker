@@ -103,6 +103,21 @@ describe('ApplicationCard interactions', () => {
     expect(handleUpdate.mock.calls[0][0].company).toBe('Nova Labs');
   });
 
+  it('shows terminal applications without a planned follow-up', () => {
+    render(
+      <ApplicationCard
+        application={buildApplication({ status: 'Abgelehnt', followUpDate: undefined })}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        onStatusChange={vi.fn()}
+        onTaskUpdate={vi.fn()}
+        onTaskDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/nicht relevant/i)).toBeInTheDocument();
+  });
+
   it('renders task titles and allows editing/completing tasks', () => {
     const handleTaskUpdate = vi.fn();
     const tasks: Task[] = [
