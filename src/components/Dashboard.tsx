@@ -2,21 +2,23 @@ import { useEffect, useState } from 'react';
 import { formatDateDE } from '../services/export';
 import { parseDateValue, stripTime } from '../services/date';
 import type { ApplicationStatus, DashboardStats } from '../types';
-import { Badge, Input } from './ui';
+import { Badge, Input, cn } from './ui';
 
 interface DashboardProps {
   stats: DashboardStats;
   weeklyGoal: number;
   onWeeklyGoalChange: (goal: number) => void;
+  activeStatus: ApplicationStatus | 'Alle';
+  onStatusSelect: (status: ApplicationStatus | 'Alle') => void;
 }
 
-const STATUS_META: Array<{ status: ApplicationStatus; label: string; color: string }> = [
+const STATUS_META: Array<{ status: ApplicationStatus | 'Alle'; label: string; color: string }> = [
   { status: 'Entwurf', label: 'Entwurf', color: '#93a4c2' },
   { status: 'Beworben', label: 'Beworben', color: '#5aa0ff' },
   { status: 'Interview', label: 'Interview', color: '#7ac7f5' },
   { status: 'Angebot', label: 'Angebot', color: '#6fdc8f' },
   { status: 'Abgelehnt', label: 'Abgelehnt', color: '#ff7272' },
-  { status: 'Zurückgezogen', label: 'Zurückgezogen', color: '#8b95a9' }
+  { status: 'Alle', label: 'Alle anzeigen', color: '#5aa0ff' }
 ];
 
 const getGreeting = () => {
@@ -27,7 +29,7 @@ const getGreeting = () => {
 };
 
 // Dashboard zeigt KPIs, Verlauf und Follow-ups.
-export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardProps) => {
+export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange, activeStatus, onStatusSelect }: DashboardProps) => {
   const safeWeeklyGoal = Math.min(30, Math.max(1, Math.round(weeklyGoal || 1)));
   const [goalInput, setGoalInput] = useState(String(safeWeeklyGoal));
 
@@ -289,10 +291,30 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {STATUS_META.map((item) => {
-            const count = stats.byStatus[item.status] ?? 0;
-            const ratio = stats.total === 0 || count === 0 ? 0 : Math.max(8, Math.round((count / stats.total) * 100));
+            const count = item.status === 'Alle' ? stats.total : stats.byStatus[item.status] ?? 0;
+            const ratio =
+              item.status === 'Alle'
+                ? stats.total === 0 ? 0 : 100
+                : stats.total === 0 || count === 0 ? 0 : Math.max(8, Math.round((count / stats.total) * 100));
+            const isActive = activeStatus === item.status;
+
             return (
-              <div key={item.status} className="card-soft p-3">
+              <button
+                key={item.status}
+                type="button"
+                className={cn(
+                  'card-soft w-full p-3 text-left font-body text-text transition hover:-translate-y-0.5 hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                  isActive && 'shadow-glow'
+                )}
+                style={isActive ? { borderColor: item.color, boxShadow: 'var(--shadow-glow)' } : undefined}
+                aria-pressed={isActive}
+                aria-label={
+                  item.status === 'Alle'
+                    ? 'Alle Bewerbungen anzeigen'
+                    : `Bewerbungen mit Status ${item.label} anzeigen`
+                }
+                onClick={() => onStatusSelect(item.status)}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm text-muted">{item.label}</span>
                   <span className="mono rounded-md border border-border bg-surface px-2 py-0.5 text-sm font-semibold text-text">
@@ -302,7 +324,7 @@ export const Dashboard = ({ stats, weeklyGoal, onWeeklyGoalChange }: DashboardPr
                 <div className="mt-2 h-2 rounded-full bg-surface-3">
                   <div className="h-full rounded-full" style={{ width: `${ratio}%`, backgroundColor: item.color }} />
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

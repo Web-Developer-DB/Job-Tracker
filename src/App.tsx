@@ -283,6 +283,11 @@ const App = () => {
 
   const handleFocusDesktopCreate = () => setIsCreateSheetOpen(true);
 
+  const handleDashboardStatusSelect = (status: ApplicationStatus | 'Alle') => {
+    updateFilters({ status });
+    listSectionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  };
+
   const handleChipRemove = (key: MobileFilterChipKey) => {
     if (key === 'search') {
       updateFilters({ search: '' });
@@ -567,6 +572,8 @@ const App = () => {
             stats={stats}
             weeklyGoal={settings.weeklyGoal}
             onWeeklyGoalChange={setWeeklyGoal}
+            activeStatus={filters.status}
+            onStatusSelect={handleDashboardStatusSelect}
           />
 
           <Planner

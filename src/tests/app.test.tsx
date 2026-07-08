@@ -173,6 +173,27 @@ describe('App', () => {
     });
   });
 
+  it('sets the status filter from the dashboard overview', async () => {
+    const user = userEvent.setup();
+    const store = createStoreSlice();
+    store.applications = [
+      createApplication({ id: 'app-1', company: 'Alpha', status: 'Beworben' }),
+      createApplication({ id: 'app-2', company: 'Beta', status: 'Abgelehnt' })
+    ];
+    mockUseAppStore.mockReturnValue(store);
+
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: /bewerbungen mit status beworben anzeigen/i }));
+
+    expect(store.setFilters).toHaveBeenCalledWith({
+      status: 'Beworben',
+      range: 'all',
+      search: '',
+      sort: 'createdAt'
+    });
+  });
+
   it('uses the file picker for backup export when supported', async () => {
     const user = userEvent.setup();
     const store = createStoreSlice();

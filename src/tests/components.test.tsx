@@ -47,6 +47,8 @@ describe('Dashboard interactions', () => {
         stats={buildDashboardStats()}
         weeklyGoal={5}
         onWeeklyGoalChange={handleWeeklyGoalChange}
+        activeStatus="Alle"
+        onStatusSelect={vi.fn()}
       />
     );
 
@@ -55,6 +57,33 @@ describe('Dashboard interactions', () => {
 
     expect(handleWeeklyGoalChange).toHaveBeenCalled();
     expect(handleWeeklyGoalChange).toHaveBeenLastCalledWith(12);
+  });
+
+  it('emits status filter changes from the status overview', () => {
+    const handleStatusSelect = vi.fn();
+
+    render(
+      <Dashboard
+        stats={buildDashboardStats()}
+        weeklyGoal={5}
+        onWeeklyGoalChange={vi.fn()}
+        activeStatus="Beworben"
+        onStatusSelect={handleStatusSelect}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /bewerbungen mit status beworben anzeigen/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(screen.getByText(/alle anzeigen/i)).toBeInTheDocument();
+    expect(screen.queryByText(/zurückgezogen/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /bewerbungen mit status abgelehnt anzeigen/i }));
+    expect(handleStatusSelect).toHaveBeenCalledWith('Abgelehnt');
+
+    fireEvent.click(screen.getByRole('button', { name: /alle bewerbungen anzeigen/i }));
+    expect(handleStatusSelect).toHaveBeenCalledWith('Alle');
   });
 });
 

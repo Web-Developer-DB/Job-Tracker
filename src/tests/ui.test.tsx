@@ -72,7 +72,15 @@ describe('Dashboard', () => {
       followUpsDue: []
     };
 
-    render(<Dashboard stats={stats} weeklyGoal={5} onWeeklyGoalChange={vi.fn()} />);
+    render(
+      <Dashboard
+        stats={stats}
+        weeklyGoal={5}
+        onWeeklyGoalChange={vi.fn()}
+        activeStatus="Alle"
+        onStatusSelect={vi.fn()}
+      />
+    );
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText(/gesamt/i)).toBeInTheDocument();
   });
