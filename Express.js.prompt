@@ -1,0 +1,322 @@
+# Express.js + MongoDB Build-Prompt (fuer CodeAgent)
+
+Du implementierst ein produktionsreifes Backend fuer die bestehende Job-Tracker-App.
+Das Frontend existiert bereits (React + Vite + Zustand + lokale IndexedDB/localStorage-Persistenz).
+Deine Aufgabe ist es, Cloud-Synchronisation mit moeglichst wenigen Frontend-Aenderungen zu ergaenzen.
+
+## 1) Ziele
+
+1. Ein `Express.js`-Backend mit `MongoDB` fuer geraeteuebergreifende Synchronisation bauen.
+2. Onboarding fuer Nutzer so einfach wie moeglich halten:
+   - Kein Benutzername/Passwort-Registrierungsflow.
+   - In v1 nur Google Sign-In (OAuth).
+3. Frontend-Aenderungen minimal halten:
+   - Lokales First-Verhalten muss weiterhin funktionieren.
+   - Optionale Cloud-Synchronisation nur fuer authentifizierte Nutzer.
+4. Unterstuetzung fuer Windows, Linux, iPhone und Android per Browser/PWA.
+
+## 2) Randbedingungen
+
+1. Die Frontend-Architektur darf nicht neu geschrieben werden.
+2. Login darf nicht fuer lokale Nutzung erzwungen werden.
+3. Datenmodell in v1 einfach halten: kompletter App-State als ein Dokument pro Nutzer.
+4. Backend in TypeScript umsetzen.
+5. Sicherheitsgrundlagen sind Pflicht (Session-Sicherheit, Input-Validierung, Rate-Limit, CORS, Helmet).
+
+## 3) Bestehender Frontend-State-Vertrag (muss erhalten bleiben)
+
+Nutze fuer Cloud-Payloads exakt diese Struktur:
+
+```ts
+interface AppState {
+  applications: JobApplication[];
+  tasks: Task[];
+  settings: Settings;
+}
+```
+
+Die Struktur in v1 nicht aendern. Als-is validieren und persistieren.
+
+## 4) Vorgeschlagene Architektur
+
+Lege einen neuen Backend-Workspace an:
+
+```text
+/server
+  /src
+    /config
+    /db
+    /middlewares
+    /models
+    /routes
+    /services
+    /types
+    app.ts
+    index.ts
+```
+
+Empfohlener Runtime-Stack:
+
+1. `express`
+2. `mongoose`
+3. `passport` + `passport-google-oauth20`
+4. `express-session` + `connect-mongo`
+5. `zod` (Request-Validierung)
+6. `cors`, `helmet`, `express-rate-limit`, `compression`
+7. `pino`/`pino-http` (Logging)
+8. `vitest` + `supertest` (Tests)
+
+## 5) Datenmodelle
+
+### 5.1 User
+
+`users`-Collection:
+
+```ts
+{
+  _id: ObjectId,
+  provider: "google",
+  providerId: string,       // Google sub
+  email: string,
+  name?: string,
+  avatarUrl?: string,
+  createdAt: Date,
+  updatedAt: Date,
+  lastLoginAt: Date
+}
+```
+
+Indizes:
+
+1. unique `{ provider, providerId }`
+2. unique `{ email }` (sparse false)
+
+### 5.2 UserState
+
+`user_states`-Collection:
+
+```ts
+{
+  _id: ObjectId,
+  userId: ObjectId,         // ref users._id, unique
+  state: AppState,          // kompletter JSON-Snapshot
+  version: number,          // optimistic concurrency
+  updatedAt: Date,
+  createdAt: Date
+}
+```
+
+Indizes:
+
+1. unique `{ userId }`
+2. `{ updatedAt: -1 }`
+
+## 6) Auth-Design (einfach fuer Nutzer)
+
+In v1 nur Google OAuth implementieren:
+
+1. Nutzer klickt auf "Mit Google anmelden".
+2. Redirect auf Backend `/api/v1/auth/google`.
+3. Callback `/api/v1/auth/google/callback` erstellt/aktualisiert User und Session.
+4. Redirect zurueck zum Frontend (Success-URL aus Env).
+5. Session serverseitig in MongoDB mit `connect-mongo` speichern.
+
+Warum dieses Design:
+
+1. Kein Passwort-Reset-Flow.
+2. Minimale Reibung fuer Nutzer.
+3. Fuer alle Zielplattformen geeignet.
+
+## 7) API-Zugangspunkte (verpflichtend)
+
+Basis-Pfad: `/api/v1`
+
+### Oeffentlich
+
+1. `GET /health`
+   - Response: `{ ok: true, uptime: number, env: string }`
+
+### Auth
+
+1. `GET /auth/google`
+   - Startet den OAuth-Flow.
+2. `GET /auth/google/callback`
+   - Beendet OAuth, setzt Session-Cookie und leitet zum Frontend weiter.
+3. `GET /auth/me`
+   - Response:
+   ```json
+   {
+     "authenticated": true,
+     "user": { "id": "...", "email": "...", "name": "...", "avatarUrl": "..." }
+   }
+   ```
+   - Wenn nicht eingeloggt: `{ "authenticated": false, "user": null }`
+4. `POST /auth/logout`
+   - Zerstoert Session und loescht Cookie.
+
+### Sync
+
+1. `GET /state`
+   - Auth erforderlich.
+   - Response:
+   ```json
+   {
+     "state": { "...AppState..." },
+     "version": 12,
+     "updatedAt": "2026-02-09T18:30:00.000Z"
+   }
+   ```
+   - Wenn kein Cloud-State existiert:
+   ```json
+   { "state": null, "version": 0, "updatedAt": null }
+   ```
+
+2. `PUT /state`
+   - Auth erforderlich.
+   - Body:
+   ```json
+   {
+     "state": { "...AppState..." },
+     "baseVersion": 12
+   }
+   ```
+   - Verhalten:
+     - Wenn `baseVersion` zur aktuellen Version passt (oder aktuelle Version 0 ist), speichern und Version erhoehen.
+     - Bei Mismatch `409` zurueckgeben.
+   - `409`-Response:
+   ```json
+   {
+     "error": "VERSION_CONFLICT",
+     "remote": { "state": { "...AppState..." }, "version": 13, "updatedAt": "..." }
+   }
+   ```
+
+3. `DELETE /state`
+   - Auth erforderlich.
+   - Loescht Cloud-State des aktuellen Nutzers.
+
+## 8) Sicherheitsanforderungen
+
+1. `helmet` verwenden.
+2. Auth-Routen mit Rate-Limit schuetzen.
+3. Strikte CORS-Allowlist aus Env (`APP_ORIGIN`).
+4. Cookie-Einstellungen:
+   - `httpOnly: true`
+   - `secure: true` in Produktion
+   - `sameSite` konfigurierbar (`lax` Standard, `none` bei Cross-Site-Deployment)
+5. Alle Write-Payloads mit `zod` validieren.
+6. Niemals `userId` vom Client vertrauen; immer aus Session ableiten.
+7. Zentrale Error-Handler-Middleware mit bereinigten Fehlermeldungen.
+
+## 9) Umfang der Frontend-Aenderungen (minimal)
+
+Nur minimal ergaenzen:
+
+1. `authClient`-Service:
+   - `getMe()`
+   - `loginWithGoogle()` (Redirect)
+   - `logout()`
+2. `cloudSyncClient`-Service:
+   - `pullState()`
+   - `pushState(state, baseVersion)`
+   - `deleteCloudState()`
+3. Store-Integration:
+   - Lokales Save/Hydrate unveraendert lassen.
+   - Wenn authentifiziert:
+     - Beim Start Cloud-State ziehen und mit lokalem Stand ueber `updatedAt`/Version-Regel zusammenfuehren.
+     - Bei Mutationen lokales debounced Save behalten und Cloud-Push ergaenzen.
+4. Kleine UI-Ergaenzungen:
+   - Header-Button: "Mit Google anmelden" / "Abmelden"
+   - Kleines Sync-Status-Badge: `Lokal`, `Sync laeuft`, `Konflikt`, `Cloud ok`
+
+## 10) Konfliktstrategie (v1)
+
+Deterministisches, simples Verhalten:
+
+1. Optimistic Locking mit `baseVersion`.
+2. Bei `409 VERSION_CONFLICT`:
+   - Remote ziehen.
+   - `updatedAt` vergleichen.
+   - Standardregel v1: juengstes `updatedAt` gewinnt.
+   - Vor dem Ueberschreiben lokalen Backup-Snapshot sichern.
+
+## 11) Umgebungsvariablen (.env.example)
+
+Vollstaendige Vorlage anlegen:
+
+```env
+NODE_ENV=development
+PORT=4000
+MONGODB_URI=mongodb+srv://...
+SESSION_SECRET=replace_me
+APP_ORIGIN=http://localhost:5173
+API_BASE_URL=http://localhost:4000
+AUTH_SUCCESS_REDIRECT=http://localhost:5173/auth/callback
+AUTH_FAILURE_REDIRECT=http://localhost:5173/auth/error
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=http://localhost:4000/api/v1/auth/google/callback
+COOKIE_NAME=jt.sid
+COOKIE_SAME_SITE=lax
+COOKIE_DOMAIN=
+```
+
+### 11.1 Deployment-Profile (verpflichtend)
+
+Profil A (empfohlen): Same-Site-Deployment unter einer Basis-Domain
+
+1. Beispiel:
+   - frontend: `https://app.example.com`
+   - backend: `https://api.example.com`
+2. Nutzen:
+   - `COOKIE_SAME_SITE=lax`
+   - `COOKIE_DOMAIN=.example.com`
+   - `APP_ORIGIN=https://app.example.com`
+3. Frontend-Requests muessen Credentials senden (`fetch(..., { credentials: "include" })`).
+
+Profil B: Cross-Site-Deployment auf unterschiedlichen Domains
+
+1. Beispiel:
+   - frontend: `https://my-app.vercel.app`
+   - backend: `https://my-api.onrender.com`
+2. Nutzen:
+   - `COOKIE_SAME_SITE=none`
+   - `secure=true` (verpflichtend)
+   - `COOKIE_DOMAIN` leer lassen, falls nicht explizit benoetigt
+3. CORS darf nur den exakten Frontend-Origin + Credentials erlauben.
+
+Beide Profile in `/server/README` dokumentieren und in Staging validieren.
+
+## 12) Lieferumfang-Checkliste
+
+1. Backend-Code in `/server` mit typisierten Routen und Validierung.
+2. Integrationstests fuer:
+   - auth me/logout
+   - state get/put/delete
+   - version conflict
+3. `README`-Abschnitt mit:
+   - Local Setup
+   - Google OAuth Setup
+   - Mongo Setup
+   - Deployment-Hinweise
+4. Minimaler Frontend-Integrations-PR (keine Architektur-Neuschreibung).
+5. API-Vertragsdokument als Markdown (`/server/API.md`).
+
+## 13) Akzeptanzkriterien
+
+1. Nutzer kann sich in unter 2 Klicks per Google anmelden.
+2. Derselbe Nutzer sieht auf einem zweiten Geraet den synchronisierten Stand.
+3. Local-only-Modus funktioniert weiterhin ohne Login.
+4. Kein Passwort-Registrierungs-UI vorhanden.
+5. Alle geforderten API-Routen implementiert und getestet.
+6. Sicherheits-Middleware in Produktion aktiv.
+7. Auth funktioniert in mindestens einem konfigurierten Deployment-Profil (A oder B), inklusive cookie-basierter Session-Persistenz.
+
+## 14) Nicht-Ziele fuer v1
+
+1. Kein Multi-User-Sharing eines gemeinsamen Workspaces.
+2. Kein granulare Merge-UI pro Datensatz.
+3. Kein erweitertes RBAC.
+4. Keine E-Mail/Passwort-Auth.
+
+Setze dies exakt um: pragmatisch, sauber und mit minimaler Stoerung der bestehenden Frontend-Logik.

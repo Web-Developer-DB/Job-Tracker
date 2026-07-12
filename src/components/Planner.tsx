@@ -1,0 +1,196 @@
+import { useMemo, useState, type FormEvent } from 'react';
+import type { JobApplication, Task } from '../types';
+import { formatDateDE } from '../services/export';
+import { parseDateValue } from '../services/date';
+import { Button, Input, Select } from './ui';
+
+interface PlannerProps {
+  tasks: Task[];
+  applications: JobApplication[];
+  onAddTask: (data: Partial<Task>) => void;
+  onUpdateTask: (id: string, patch: Partial<Task>) => void;
+  onDeleteTask: (id: string) => void;
+}
+
+// Filteransicht für Aufgaben.
+type ViewMode = 'today' | 'week' | 'overdue';
+
+// Labels für die UI.
+const viewLabels: Record<ViewMode, string> = {
+  today: 'Heute',
+  week: 'Diese Woche',
+  overdue: 'Überfällig'
+};
+
+// Labels für Task-Typen.
+const typeLabels: Record<Task['type'], string> = {
+  task: 'Aufgabe',
+  interview: 'Interview',
+  reminder: 'Erinnerung'
+};
+
+// Planer-Komponente für Aufgaben/Termine je Bewerbung.
+export const Planner = ({ tasks, applications, onAddTask, onUpdateTask, onDeleteTask }: PlannerProps) => {
+  // Lokaler State für Filter, Eingabefelder und Auswahl.
+  const [view, setView] = useState<ViewMode>('today');
+  const [title, setTitle] = useState('');
+  const [applicationId, setApplicationId] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [type, setType] = useState<Task['type']>('task');
+
+  // Map für schnellen Zugriff auf Bewerbungsnamen.
+  const applicationsMap = useMemo(() => {
+    return applications.reduce<Record<string, string>>((acc, application) => {
+      acc[application.id] = `${application.company || 'Unbenannt'}${application.position ? ` · ${application.position}` : ''}`;
+      return acc;
+    }, {});
+  }, [applications]);
+
+  // Filtert Aufgaben je nach gewählter Ansicht.
+  const filtered = useMemo(() => {
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfWeek = new Date(startOfToday);
+    endOfWeek.setDate(startOfToday.getDate() + 7);
+
+    return tasks.filter((task) => {
+      // Wenn kein Fälligkeitsdatum gesetzt ist, nur in „Diese Woche“ zeigen.
+      if (!task.dueDate) return view === 'week';
+      const due = parseDateValue(task.dueDate);
+      if (!due) return false;
+      if (view === 'today') {
+        return due.toDateString() === startOfToday.toDateString();
+      }
+      if (view === 'week') {
+        return due >= startOfToday && due <= endOfWeek;
+      }
+      if (view === 'overdue') {
+        return due < startOfToday && !task.done;
+      }
+      return true;
+    });
+  }, [tasks, view]);
+
+  // Neue Aufgabe abspeichern und Formular zurücksetzen.
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+
+    onAddTask({
+      applicationId: applicationId || 'unknown',
+      title: trimmedTitle,
+      dueDate: dueDate || undefined,
+      type
+    });
+    setTitle('');
+    setDueDate('');
+    setApplicationId('');
+    setType('task');
+  };
+
+  return (
+    <section className="card space-y-4 p-6">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-display text-xl">Planer</h2>
+          <p className="text-sm text-muted">Halte Follow-ups, To-dos und Interviewtermine im Flow.</p>
+        </div>
+
+        <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-border bg-surface-2 p-1 sm:w-auto sm:auto-cols-max sm:grid-flow-col sm:gap-2 sm:rounded-full">
+          {(Object.keys(viewLabels) as ViewMode[]).map((mode) => (
+            <Button
+              key={mode}
+              className="w-full !min-h-9 !px-2.5 !py-2 !text-[0.78rem] sm:w-auto sm:!px-3 sm:!py-1"
+              variant={view === mode ? 'primary' : 'ghost'}
+              size="sm"
+              type="button"
+              onClick={() => setView(mode)}
+            >
+              {viewLabels[mode]}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="grid gap-3 lg:grid-cols-[2fr_1.1fr_1fr_1fr_auto]">
+        <Input
+          type="text"
+          inputMode="text"
+          autoCapitalize="sentences"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Neue Aufgabe …"
+        />
+
+        <Select
+          value={applicationId}
+          onChange={(event) => setApplicationId(event.target.value)}
+        >
+          <option value="">Ohne Bewerbung</option>
+          {applications.map((application) => (
+            <option key={application.id} value={application.id}>
+              {application.company || 'Unbenannt'}
+            </option>
+          ))}
+        </Select>
+
+        <Select
+          value={type}
+          onChange={(event) => setType(event.target.value as Task['type'])}
+        >
+          <option value="task">Aufgabe</option>
+          <option value="interview">Interview</option>
+          <option value="reminder">Erinnerung</option>
+        </Select>
+
+        <Input
+          name="dueDate"
+          type="date"
+          value={dueDate}
+          onChange={(event) => setDueDate(event.target.value)}
+        />
+
+        <Button
+          type="submit"
+          variant="primary"
+        >
+          Hinzufügen
+        </Button>
+      </form>
+
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <p className="card-soft p-4 text-sm text-muted">Keine Aufgaben in dieser Ansicht. Plane den nächsten kleinen Schritt.</p>
+        ) : (
+          filtered.map((task) => (
+            <div key={task.id} className="card-soft flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <label className="flex min-w-0 flex-1 items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={task.done}
+                  onChange={(event) => onUpdateTask(task.id, { done: event.target.checked })}
+                  className="mt-1"
+                />
+                <div className="min-w-0">
+                  <p className={`truncate font-medium ${task.done ? 'text-muted line-through' : 'text-text'}`}>{task.title || 'Ohne Titel'}</p>
+                  <p className="text-xs text-muted">
+                    {applicationsMap[task.applicationId] || 'Ohne Bewerbung'} · {typeLabels[task.type]}
+                    {task.dueDate ? ` · ${formatDateDE(task.dueDate)}` : ''}
+                  </p>
+                </div>
+              </label>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => onDeleteTask(task.id)}
+              >
+                Löschen
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+};

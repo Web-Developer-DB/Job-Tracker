@@ -1,0 +1,18 @@
+{
+  "name": "Job Tracker PWA",
+  "short_name": "JobTracker",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1f1d2b",
+  "theme_color": "#1f1d2b",
+  "description": "Offline-fähige Bewerbungs- und Planer-App.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
