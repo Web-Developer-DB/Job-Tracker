@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ApplicationForm } from '../components/ApplicationForm';
 import { ApplicationList } from '../components/ApplicationList';
@@ -57,7 +57,7 @@ describe('Dashboard', () => {
         Interview: 1,
         Angebot: 0,
         Abgelehnt: 0,
-        'Zurückgezogen': 0
+        Zurückgezogen: 0
       },
       thisWeek: 1,
       thisMonth: 2,
@@ -81,8 +81,11 @@ describe('Dashboard', () => {
         onStatusSelect={vi.fn()}
       />
     );
-    expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getByText(/gesamt/i)).toBeInTheDocument();
+
+    const totalLabel = screen.getByText(/^gesamt$/i);
+    const totalCard = totalLabel.closest('.metric-card');
+    expect(totalCard).not.toBeNull();
+    expect(within(totalCard as HTMLElement).getByText('3')).toBeInTheDocument();
   });
 });
 
