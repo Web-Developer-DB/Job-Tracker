@@ -10,6 +10,7 @@ const originalMatchMedia = window.matchMedia;
 const originalShowSaveFilePicker = (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker;
 const originalCreateObjectURL = URL.createObjectURL;
 const originalRevokeObjectURL = URL.revokeObjectURL;
+const originalScrollIntoView = Element.prototype.scrollIntoView;
 
 vi.mock('../store/appStore', () => ({
   useAppStore: () => mockUseAppStore()
@@ -79,6 +80,7 @@ describe('App', () => {
   beforeEach(() => {
     mockUseAppStore.mockReset();
     mockPrint.mockReset();
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   afterEach(() => {
@@ -86,6 +88,7 @@ describe('App', () => {
     (window as Window & { showSaveFilePicker?: unknown }).showSaveFilePicker = originalShowSaveFilePicker;
     URL.createObjectURL = originalCreateObjectURL;
     URL.revokeObjectURL = originalRevokeObjectURL;
+    Element.prototype.scrollIntoView = originalScrollIntoView;
     vi.restoreAllMocks();
   });
 
