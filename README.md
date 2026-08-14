@@ -4,237 +4,135 @@
   # 💼 Job Tracker PWA
 
   <p>
-    <b>Offline-fähige</b> Bewerbungs- und Planer-App (React + Vite + TypeScript) — <b>ohne Backend</b>, <b>ohne Cloud</b> – alles bleibt lokal. 🔒
+    Offline-first Bewerbungs- und Planer-App mit <b>React 19</b>, <b>TypeScript</b> und <b>Vite</b>.<br />
+    Ohne Backend und ohne Cloud – Bewerbungsdaten bleiben lokal im Browser. 🔒
+  </p>
+
+  <p>
+    <a href="https://job-tracker-three-iota.vercel.app/"><b>🚀 Live-Demo öffnen</b></a>
+    ·
+    <a href="https://github.com/Web-Developer-DB/Job-Tracker"><b>Quellcode</b></a>
   </p>
 
   <p>
     <img alt="PWA" src="https://img.shields.io/badge/PWA-ready-8A2BE2?style=for-the-badge" />
     <img alt="Offline" src="https://img.shields.io/badge/offline-first-00C853?style=for-the-badge" />
-    <img alt="React" src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react" />
-    <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
-    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
-    <img alt="Tailwind" src="https://img.shields.io/badge/Tailwind-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white" />
+    <img alt="React" src="https://img.shields.io/badge/React-19-20232A?style=for-the-badge&logo=react" />
+    <img alt="Vite" src="https://img.shields.io/badge/Vite-7-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
+    <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+    <img alt="Tailwind" src="https://img.shields.io/badge/Tailwind-4-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white" />
     <img alt="License" src="https://img.shields.io/badge/License-MIT-FF6F00?style=for-the-badge" />
   </p>
 </div>
 
 ---
 
-## 🧭 Inhaltsverzeichnis
+## Über das Projekt
 
-- [✨ Features](#features)
-- [📲 PWA-Installation & Browser-Unterstützung](#pwa)
-- [🚀 Quickstart (Dev/Build/Preview)](#quickstart)
-- [🧪 Tests](#tests)
-- [🧩 Technologien](#tech)
-- [🗂️ Projektstruktur](#structure)
-- [🧠 Architektur & Logik](#architecture)
-- [🧾 Lizenz & Credits](#license)
+Der Job Tracker ist ein eigenständig entwickeltes Portfolio-Projekt zur strukturierten Verwaltung kompletter Bewerbungsprozesse. Die Anwendung verbindet Bewerbungs-Tracking, Follow-ups, Aufgabenplanung, Statistiken, Backup/Restore und eine druckoptimierte Bewerbungsübersicht in einer installierbaren PWA.
 
----
+Ein Schwerpunkt liegt auf Datenschutz und Offline-Nutzung: Die Anwendung benötigt weder Benutzerkonto noch Server. Daten werden lokal in IndexedDB gespeichert; falls IndexedDB nicht verfügbar ist, dient `localStorage` als Fallback.
 
-<a id="features"></a>
 ## ✨ Features
 
-- 📴 **Offline-First**: läuft ohne Internet (Service Worker + Offline-Seite)
-- 🧠 **Lokal gespeichert**: IndexedDB (Fallback: `localStorage`) — keine Server, keine Accounts
-- 🗃️ **Job-Tracker (CRUD)**: Anlegen, Bearbeiten, Löschen, Statuswechsel
-- 🔎 **Suche, Filter, Sortierung**: schnell finden statt zu scrollen
-- 🗓️ **Planer**: Aufgaben/Termine pro Bewerbung + Ansichten (Heute / Diese Woche / Überfällig)
-- ⏰ **Follow-ups**: Fälligkeitslogik + Dashboard-Übersicht
-- 🧾 **Backup & Restore**: JSON-Export mit Versionierung
-- 🖨️ **PDF / Drucken**: druckoptimierte Tabellenansicht mit Statusfarben
-- 🌙 **Dark/Light**: Dark Mode im **Dracula-Style** 🧛‍♂️
-- 🧪 **Tests**: Vitest + Testing Library (Logik, Storage, grundlegende UI-Tests)
+- 📴 **Offline-First / PWA** mit Service Worker und Offline-Fallback
+- 🔒 **Lokale Datenspeicherung** ohne Backend, Cloud oder Account
+- 🗃️ **Bewerbungsverwaltung (CRUD)** mit Statushistorie
+- 🔎 **Suche, Filter und Sortierung**
+- 🗓️ **Planer** für Aufgaben und Termine pro Bewerbung
+- ⏰ **Follow-ups** mit automatischen Datumsvorschlägen und Fälligkeitsübersicht
+- 📊 **Dashboard und Statistiken** inklusive Statusverteilung und Monatsverlauf
+- 🎯 **Wochenziel** für Bewerbungsaktivitäten
+- 🧾 **Backup & Restore** als versionierte JSON-Datei
+- 🖨️ **PDF / Drucken** über eine eigene druckoptimierte Ansicht
+- 🌙 **Dark/Light Mode**
+- 📱 **Responsive UI** für Desktop und mobile Geräte
+- 🧪 **Tests** mit Vitest und Testing Library
 
----
+## 🧩 Technologien
 
-<a id="pwa"></a>
-## 📲 PWA-Installation & Browser-Unterstützung
+- **React 19 + Vite 7** – UI und Build-Pipeline
+- **TypeScript 5** – typisierte Domänenmodelle und robuste Anwendungslogik
+- **Tailwind CSS 4** – responsives Design und Theme-Variablen
+- **Zustand 5** – globaler State mit Hydration und Auto-Save
+- **IndexedDB** mit `localStorage`-Fallback – lokale Persistenz
+- **Framer Motion** – Animationen und Übergänge
+- **react-to-print** – Druck-/PDF-Workflow
+- **Vitest + Testing Library** – Unit- und UI-Tests
 
-**Wichtiger Hinweis (Stand: Februar 2026):** Installierbarkeit als PWA hängt stark vom Browser ab.
+## 🧠 Architektur
 
-### 🖥️ Desktop (Windows/macOS/Linux)
+Die Anwendung trennt UI, Geschäftslogik, State und Persistenz bewusst voneinander:
 
-✅ **Unterstützt**
-- 🟦 Chromium-Browser (Chrome, Edge, Brave, Opera)
-- 🧭 Safari auf macOS Sonoma (Safari 17+) über **„Add to Dock“**
+- `src/components/` – UI-Komponenten und responsive Ansichten
+- `src/components/mobile/` – mobile Interaktionsmuster
+- `src/components/ui/` – wiederverwendbare UI-Bausteine
+- `src/services/logic.ts` – testbare Domänenlogik für CRUD, Status, Follow-ups, Filter, Statistiken und Restore-Normalisierung
+- `src/services/storage.ts` – einheitliche Storage-Abstraktion für IndexedDB und `localStorage`
+- `src/services/date.ts` – Datumsnormalisierung und Hilfsfunktionen
+- `src/services/export.ts` / `fileSave.ts` – Export- und Backup-Funktionen
+- `src/store/appStore.ts` – Zustand-Store mit Auto-Save und Hydration
+- `src/tests/` – Tests für Logik, Store, Storage, UI, Komponenten und Druckansicht
+- `src/types.ts` – zentrale Domänenmodelle
 
-❌ **Nicht unterstützt**
-- 🦊 Firefox (keine Manifest-Installation am Desktop)
+## 🧪 Qualität & Tests
 
-### 🤖 Android
+Die Tests decken unter anderem folgende Bereiche ab:
 
-✅ **Unterstützt**
-- 🟦 Chrome, Edge
-- 🦊 Firefox
-- 🅾️ Opera
-- 📱 Samsung Internet
-
-### 🍎 iOS / iPadOS
-
-✅ **Unterstützt**
-- iOS 16.3 und früher: **nur Safari**
-- iOS 16.4 und später: Safari, Chrome, Edge, Firefox, Orion (über Teilen-Menü)
-
-💡 **Tipp:** Der Install-Button in der App erscheint nur, wenn der Browser den Install-Prompt unterstützt (meist Chromium).  
-Auf iOS nutzt du: **Teilen → Zum Home-Bildschirm**.
-
----
-
-<a id="quickstart"></a>
-## 🚀 Quickstart (Dev/Build/Preview)
-
-### ✅ Voraussetzungen
-
-- 🟩 Node.js **>=22.12.0** erforderlich
-- 📦 npm **10+**
-
-### 📥 Installation
+- Bewerbungs- und Aufgaben-CRUD
+- Statushistorie und Follow-up-Logik
+- Filterung und Sortierung
+- Dashboard-Statistiken
+- Backup/Restore und Daten-Normalisierung
+- Storage und Store-Verhalten
+- UI- und Komponentenverhalten
+- Druckansicht
 
 ```bash
-# optional, falls nvm genutzt wird
-nvm use
-npm install
+npm run test:run
 ```
 
-### 🧑‍💻 Entwicklung
+Für einen Produktions-Build:
 
 ```bash
+npm run build
+```
+
+## 🚀 Lokale Entwicklung
+
+### Voraussetzungen
+
+- Node.js **>= 22.12.0**
+- npm **10+**
+
+```bash
+npm install
 npm run dev
 ```
 
-### 🏗️ Build + Preview
+Preview des Produktions-Builds:
 
 ```bash
 npm run build
 npm run preview
 ```
 
----
+## 📲 PWA
 
-<a id="tests"></a>
-## 🧪 Tests
+Die Anwendung kann in unterstützten Browsern als PWA installiert werden. Auf Desktop-Systemen funktioniert die Installation insbesondere in Chromium-basierten Browsern; auf Mobilgeräten erfolgt die Installation über die jeweilige Browser-/Home-Screen-Funktion.
 
-```bash
-npm run test
-```
+Der Service Worker wird nur im Production-Build registriert.
 
----
+## 🧾 Datenschutz
 
-<a id="tech"></a>
-## 🧩 Technologien
+Der Job Tracker überträgt keine Bewerbungsdaten an einen Server. Bewerbungen, Kontakte, Notizen, Aufgaben und Einstellungen verbleiben lokal im Browser. Für Datensicherung und Gerätewechsel steht ein JSON-Backup mit Restore-Funktion zur Verfügung.
 
-- ⚛️ **React 18 + Vite**: schnelle Entwicklung und moderne Build-Pipeline
-- 🟦 **TypeScript**: robuste Domänenmodelle, weniger Laufzeitfehler
-- 🌬️ **Tailwind CSS**: konsistentes UI-Design + Theme-Variablen
-- 🐻 **Zustand**: schlanker globaler State inkl. Hydration und Auto-Save
-- 🗄️ **IndexedDB** (Fallback `localStorage`): Offline-Speicherung
-- 🎞️ **Framer Motion**: sanfte Animationen für Listen und Übergänge
-- 🖨️ **react-to-print**: PDF-/Druckansicht direkt aus React
-- 🧪 **Vitest + Testing Library**: Unit- und grundlegende UI-Tests
+## 🪪 Lizenz & Credits
+
+- Lizenz: **MIT**
+- Autor: **Dimitri B**
+- Entwicklung mit Unterstützung von **Codex-Agenten**
 
 ---
 
-<a id="structure"></a>
-## 🗂️ Projektstruktur
-
-```
-public/
- ├─ icon.svg
- ├─ manifest.webmanifest
- ├─ offline.html
- └─ sw.js
-src/
- ├─ components/
- │   ├─ ApplicationCard.tsx
- │   ├─ ApplicationForm.tsx
- │   ├─ ApplicationList.tsx
- │   ├─ Dashboard.tsx
- │   ├─ FiltersBar.tsx
- │   ├─ Planner.tsx
- │   ├─ PrintView.tsx
- │   ├─ Skeleton.tsx
- │   └─ StatusBadge.tsx
- ├─ services/
- │   ├─ export.ts
- │   ├─ logic.ts
- │   ├─ storage.ts
- │   └─ theme.ts
- ├─ store/
- │   └─ appStore.ts
- ├─ tests/
- │   ├─ export.test.ts
- │   ├─ logic.test.ts
- │   ├─ setup.ts
- │   ├─ storage.test.ts
- │   └─ ui.test.tsx
- ├─ App.tsx
- ├─ index.css
- ├─ main.tsx
- ├─ types.ts
- └─ vite-env.d.ts
-```
-
-### 🔍 Ordnerstruktur im Detail
-
-- 🧰 `public/`: PWA-Assets (Manifest, Service Worker, Offline-HTML, Icon)
-- 🧱 `src/components/`: UI-Bausteine (Formular, Karten, Filter, Dashboard, Planer, PrintView)
-- 🧠 `src/services/`: Domänenlogik & Infrastruktur (Storage, Export, Theme) — **UI-unabhängig**
-- 🐻 `src/store/`: Zustand-Store (Aktionen, Auto-Save, Hydration)
-- 🧪 `src/tests/`: Unit-/UI-Tests für Kernfunktionen
-- 🧾 `src/types.ts`: Domänenmodelle (`JobApplication`, `Task`, `Settings`, `BackupFile`)
-
----
-
-<a id="architecture"></a>
-## 🧠 Architektur & Logik
-
-### 🧾 Domänenmodelle (`src/types.ts`)
-
-- 💼 **JobApplication**: Bewerbungen inkl. Status, Follow-up, Kontakt, Notizen
-- ✅ **Task**: Aufgaben/Termine je Bewerbung (inkl. `done` + optional `dueDate`)
-- ⚙️ **Settings**: Theme, Filter, Sortierung, Suche (persistiert)
-- 🧳 **BackupFile**: JSON mit `version` + `createdAt` (für Restore/Migration vorbereitet)
-
-### 🧪 Logik-Schicht (`src/services/logic.ts`)
-
-Reine, testbare Funktionen (UI-unabhängig):
-
-- 🧩 **CRUD & Statuswechsel**: `addApplication`, `updateApplication`, `deleteApplication`, `changeStatus`
-- ⏳ **Follow-up**: `calculateFollowUpDate` (automatisches Follow-up, wenn sinnvoll)
-- 🔎 **Filter/Sort**: `filterApplications`, `sortApplications`
-- 📊 **Dashboard**: `getDashboardStats` (Verteilung, Verlauf, fällige Follow-ups)
-- 🧾 **Backup & Restore**: `buildBackup`, `restoreBackup`
-
-### 🗄️ Storage (`src/services/storage.ts`)
-
-- 🥇 IndexedDB-first, Fallback auf `localStorage`
-- 🧼 Einheitliche API: `load`, `save`, `clear`
-- 🧯 Fehlerrobust durch `try/catch`
-
-### 🐻 Store (`src/store/appStore.ts`)
-
-- 🧠 Zentraler Zustand + Aktionen
-- 💾 Auto-Save mit kurzem Debounce (250ms)
-- 🧩 `hydrate` lädt Daten & setzt Theme
-
-### 🖨️ Print/Export (`src/services/export.ts` + `PrintView`)
-
-- 📋 `buildExportRows` erstellt tabellarische Exportdaten
-- 🎨 `PrintView` rendert Druckansicht inkl. Statusfarben
-
-### 🎨 Theme (`src/services/theme.ts`)
-
-- 🏷️ Theme via `data-theme`
-- 💡 Persistenter Dark-/Light-Toggle
-
----
-
-<a id="license"></a>
-## 🧾 Lizenz & Credits
-
-- 🪪 Lizenz: **MIT** (siehe `LICENSE`)
-- 👤 Autor: **Dimitri B**
-- 🤖 Mit Unterstützung von **Codex-Agenten**
-- 🌐 Repository: https://github.com/Web-Developer-DB/Job-Tracker
+**Live-Demo:** https://job-tracker-three-iota.vercel.app/
