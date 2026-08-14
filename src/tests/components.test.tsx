@@ -52,7 +52,7 @@ describe('Dashboard interactions', () => {
       />
     );
 
-    const goalInput = screen.getByLabelText(/wochenziel eingeben/i);
+    const goalInput = screen.getByRole('spinbutton', { name: /ziel/i });
     fireEvent.change(goalInput, { target: { value: '12' } });
 
     expect(handleWeeklyGoalChange).toHaveBeenCalled();
@@ -72,17 +72,17 @@ describe('Dashboard interactions', () => {
       />
     );
 
-    expect(screen.getByRole('button', { name: /bewerbungen mit status beworben anzeigen/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /bewerbungen mit status beworben anzeigen/i })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
     expect(screen.getByText(/alle anzeigen/i)).toBeInTheDocument();
     expect(screen.queryByText(/zurückgezogen/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /bewerbungen mit status abgelehnt anzeigen/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /bewerbungen mit status abgelehnt anzeigen/i }));
     expect(handleStatusSelect).toHaveBeenCalledWith('Abgelehnt');
 
-    fireEvent.click(screen.getByRole('button', { name: /alle bewerbungen anzeigen/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /alle bewerbungen anzeigen/i }));
     expect(handleStatusSelect).toHaveBeenCalledWith('Alle');
   });
 });
@@ -103,10 +103,11 @@ describe('ApplicationCard interactions', () => {
       />
     );
 
+    fireEvent.click(screen.getByRole('button', { name: /details anzeigen/i }));
     fireEvent.change(screen.getByLabelText(/status ändern/i), { target: { value: 'Interview' } });
     expect(handleStatusChange).toHaveBeenCalledWith('Interview');
 
-    fireEvent.click(screen.getByRole('button', { name: /löschen/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^löschen$/i }));
     expect(handleDelete).toHaveBeenCalledTimes(1);
   });
 
@@ -177,6 +178,7 @@ describe('ApplicationCard interactions', () => {
     expect(screen.getByText(/1 aufgabe geplant/i)).toBeInTheDocument();
     expect(screen.getByText('Follow-up Mail')).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole('button', { name: /details anzeigen/i }));
     fireEvent.click(screen.getByRole('button', { name: /aufgabe ändern/i }));
     fireEvent.change(screen.getByLabelText(/aufgabe ändern/i), { target: { value: 'Follow-up Telefonat' } });
     fireEvent.click(screen.getByRole('button', { name: /^speichern$/i }));
@@ -225,6 +227,7 @@ describe('ApplicationCard interactions', () => {
       />
     );
 
+    fireEvent.click(screen.getByRole('button', { name: /details anzeigen/i }));
     fireEvent.click(screen.getByRole('button', { name: /aufgabe löschen/i }));
     expect(handleTaskDelete).toHaveBeenCalledWith('task-1');
   });
