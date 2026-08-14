@@ -184,7 +184,7 @@ describe('App', () => {
 
     renderApp();
 
-    await user.click(screen.getByRole('button', { name: /bewerbungen mit status beworben anzeigen/i }));
+    await user.click(screen.getByRole('tab', { name: /bewerbungen mit status beworben anzeigen/i }));
 
     expect(store.setFilters).toHaveBeenCalledWith({
       status: 'Beworben',
@@ -231,9 +231,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: /sichern/i }));
 
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-    expect(
-      await screen.findByText(/backup heruntergeladen/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/backup heruntergeladen/i)).toBeInTheDocument();
   });
 
   it('silently aborts backup export when the picker dialog is cancelled', async () => {
