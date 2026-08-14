@@ -26,10 +26,12 @@ export const createStorage = (options: StorageOptions = {}): StorageDriver => {
 
   if (useIndexedDb) {
     return {
-      // Laden aus IndexedDB, bei Fehler fallback auf localStorage.
+      // Laden aus IndexedDB. Falls dort kein Zustand vorhanden ist oder ein Fehler
+      // auftritt, prüfen wir zusätzlich den localStorage-Fallback.
       load: async () => {
         try {
-          return await idbGet<AppState>(STORAGE_KEY);
+          const state = await idbGet<AppState>(STORAGE_KEY);
+          return state ?? localLoad();
         } catch (err) {
           console.warn('IndexedDB load failed, falling back to localStorage.', err);
           return localLoad();
@@ -44,12 +46,14 @@ export const createStorage = (options: StorageOptions = {}): StorageDriver => {
           localSave(state);
         }
       },
-      // Löschen in IndexedDB, bei Fehler fallback auf localStorage.
+      // Beim Löschen beide möglichen Speicherorte bereinigen, damit keine alten
+      // Fallback-Daten später wieder auftauchen.
       clear: async () => {
         try {
           await idbDelete(STORAGE_KEY);
         } catch (err) {
-          console.warn('IndexedDB clear failed, falling back to localStorage.', err);
+          console.warn('IndexedDB clear failed.', err);
+        } finally {
           localClear();
         }
       }
